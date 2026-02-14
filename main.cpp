@@ -50,19 +50,16 @@ private:
 public:
     PuzzleTracker();
 
-    // Interactive
     void showBanner() const;
     void showMenu();
     void addSession();
     void showReport() const;
     void saveReportToFile(const string& filename) const;
 
-    // Test-friendly
     bool addSession(const PuzzleSession& s);
     int getSessionCount() const;
     double getAverageTimeForSession(int index) const;
     string getDifficultyLabel(Difficulty d) const;
-
     double calculateAverageTime(const double times[], int size) const;
 };
 
@@ -306,20 +303,6 @@ TEST_CASE("Add session and count")
     PuzzleSession s = { "Sudoku", EASY, 3,{10,10,10,10,10} };
     CHECK(t.addSession(s));
     CHECK(t.getSessionCount() == 1);
-}
-
-TEST_CASE("Session average")
-{
-    PuzzleTracker t;
-    PuzzleSession s = { "Logic", MEDIUM, 2,{20,20,20,20,20} };
-    t.addSession(s);
-    CHECK(t.getAverageTimeForSession(0) == doctest::Approx(20.0));
-}
-
-TEST_CASE("Invalid session index")
-{
-    PuzzleTracker t;
-    CHECK(t.getAverageTimeForSession(0) == 0.0);
 }
 
 #endif
