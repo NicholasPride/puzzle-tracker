@@ -12,8 +12,6 @@ using namespace std;
    Comment it out to run the actual program.
 */
 #define RUN_TESTS
-
-/* ==================== DOCTEST SETUP ==================== */
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
