@@ -1,25 +1,28 @@
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <string>
-
-using namespace std;
-
-/* =====================================================
-   MODE SWITCH
-   ===================================================== */
+// Uncomment this line to run unit tests
 #define RUN_TESTS
-
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #endif
 
-   /* -------------------- Constants -------------------- */
-const int MAX_SESSIONS = 5;
-const int MAX_TIMES = 5;
+// ===========================
+// CRT MEMORY LEAK DETECTION
+// ===========================
+#ifndef RUN_TESTS
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#endif
+#endif
 
-/* -------------------- Enum -------------------- */
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+/* ===========================
+   ENUM
+   =========================== */
 enum Difficulty
 {
     EASY = 1,
@@ -27,263 +30,270 @@ enum Difficulty
     HARD
 };
 
-/* -------------------- Struct -------------------- */
-struct PuzzleSession
+/* ===========================
+   ABSTRACT BASE CLASS
+   =========================== */
+class Puzzle
 {
-    string puzzleName;
-    Difficulty level;
-    int puzzlesSolved;
-    double times[MAX_TIMES];
+protected:
+    string name;
+    int duration;
+    Difficulty difficulty;
+
+public:
+    Puzzle(string n = "Unknown",
+        int dur = 0,
+        Difficulty diff = EASY)
+        : name(n), duration(dur), difficulty(diff) {
+    }
+    
+    virtual ~Puzzle() {}  // Virtual destructor REQUIRED
+    
+    void setName(const string& n) { name = n; }
+    void setDuration(int d) { duration = d; }
+    void setDifficulty(Difficulty diff) { difficulty = diff; }
+    
+    string getName() const { return name; }
+    int getDuration() const { return duration; }
+    Difficulty getDifficulty() const { return difficulty; }
+    
+    virtual void print() const
+    {
+        cout << "Name: " << name
+            << ", Duration: " << duration
+            << ", Difficulty: " << difficulty;
+    }
+    
+    // PURE VIRTUAL FUNCTION (makes class abstract)
+    virtual string getCategory() const = 0;
 };
 
-/* =====================================================
-   COMPOSITION CLASS
-   ===================================================== */;
-   class PuzzleCollection
-   {
-   private:
-       string items[5];
-       int count;
+/* ===========================
+   DERIVED CLASS 1
+   =========================== */
+class LogicPuzzle : public Puzzle
+{
+private:
+    int cluesUsed;
 
-   public:
-       PuzzleCollection() : count(0) {}
+public:
+    LogicPuzzle(string n,
+        int dur,
+        Difficulty diff,
+        int clues)
+        : Puzzle(n, dur, diff), cluesUsed(clues) {
+    }
+    
+    void setCluesUsed(int c) { cluesUsed = c; }
+    int getCluesUsed() const { return cluesUsed; }
+    
+    string getCategory() const override
+    {
+        return "Logic";
+    }
+    
+    void print() const override
+    {
+        Puzzle::print();
+        cout << ", Clues Used: " << cluesUsed;
+    }
+};
 
-       bool addItem(const string& name)
-       {
-           if (count >= 5) return false;
-           items[count++] = name;
-           return true;
-       }
+/* ===========================
+   DERIVED CLASS 2
+   =========================== */
+class WordPuzzle : public Puzzle
+{
+private:
+    int wordsFound;
 
-       int getCount() const { return count; }
+public:
+    WordPuzzle(string n,
+        int dur,
+        Difficulty diff,
+        int words)
+        : Puzzle(n, dur, diff), wordsFound(words) {
+    }
+    
+    void setWordsFound(int w) { wordsFound = w; }
+    int getWordsFound() const { return wordsFound; }
+    
+    string getCategory() const override
+    {
+        return "Word";
+    }
+    
+    void print() const override
+    {
+        Puzzle::print();
+        cout << ", Words Found: " << wordsFound;
+    }
+};
 
-       // REQUIRED helper method
-       bool isEmpty() const
-       {
-           return count == 0;
-       }
-   };
+/* ===========================
+   MANAGER CLASS (Dynamic Array)
+   =========================== */
+class PuzzleManager
+{
+private:
+    Puzzle** items;
+    int size;
+    int capacity;
+    
+    void resize()
+    {
+        capacity *= 2;
+        
+        Puzzle** temp = new Puzzle * [capacity];
+        
+        for (int i = 0; i < size; i++)
+            temp[i] = items[i];
+        
+        delete[] items;
+        items = temp;
+    }
 
-   /* =====================================================
-      BASE CLASS
-      ===================================================== */
-   class Puzzle
-   {
-   protected:
-       string name;
-       Difficulty difficulty;
-       int duration;   // REQUIRED int member
+public:
+    PuzzleManager(int cap = 5)
+    {
+        capacity = cap;
+        size = 0;
+        items = new Puzzle * [capacity];
+    }
+    
+    ~PuzzleManager()
+    {
+        for (int i = 0; i < size; i++)
+            delete items[i];
+        
+        delete[] items;
+    }
+    
+    void add(Puzzle* p)
+    {
+        if (size >= capacity)
+            resize();
+        
+        items[size++] = p;
+    }
+    
+    void remove(int index)
+    {
+        if (index < 0 || index >= size)
+            return;
+        
+        delete items[index];
+        
+        for (int i = index; i < size - 1; i++)
+            items[i] = items[i + 1];
+        
+        size--;
+    }
+    
+    void printAll() const
+    {
+        for (int i = 0; i < size; i++)
+        {
+            items[i]->print();   // Polymorphism
+            cout << " | Category: "
+                << items[i]->getCategory()
+                << endl;
+        }
+    }
+    
+    int getSize() const { return size; }
+};
 
-   public:
-       Puzzle(string n = "Unknown", Difficulty d = EASY, int dur = 0)
-           : name(n), difficulty(d), duration(dur) {
-       }
-
-       // Setters
-       void setName(string n) { name = n; }
-       void setDifficulty(Difficulty d) { difficulty = d; }
-       void setDuration(int dur) { duration = dur; }
-
-       // Getters
-       string getName() const { return name; }
-       Difficulty getDifficulty() const { return difficulty; }
-       int getDuration() const { return duration; }
-
-       virtual string getType() const
-       {
-           return "Generic Puzzle";
-       }
-
-       // REQUIRED print()
-       virtual void print() const
-       {
-           cout << "Puzzle: " << name << endl;
-           cout << "Difficulty: " << difficulty << endl;
-           cout << "Duration: " << duration << " minutes\n";
-       }
-   };
-
-   /* =====================================================
-      DERIVED CLASS #1
-      ===================================================== */
-   class LogicPuzzle : public Puzzle
-   {
-   private:
-       int cluesUsed;
-       PuzzleCollection collection; // REQUIRED composition inside derived
-
-   public:
-       LogicPuzzle(string n = "Logic", Difficulty d = EASY, int dur = 0, int clues = 0)
-           : Puzzle(n, d, dur), cluesUsed(clues) {
-       }
-
-       string getType() const override
-       {
-           return "Logic Puzzle";
-       }
-
-       int getCluesUsed() const { return cluesUsed; }
-
-       void addLogicTool(const string& tool)
-       {
-           collection.addItem(tool);
-       }
-
-       // REQUIRED override print()
-       void print() const override
-       {
-           Puzzle::print(); // call base
-           cout << "Clues Used: " << cluesUsed << endl;
-           cout << "Tools stored: " << collection.getCount() << endl;
-       }
-   };
-
-   /* =====================================================
-      DERIVED CLASS #2
-      ===================================================== */
-   class WordPuzzle : public Puzzle
-   {
-   private:
-       int wordsFound;
-       PuzzleCollection collection; // REQUIRED composition inside derived
-
-   public:
-       WordPuzzle(string n = "Word", Difficulty d = EASY, int dur = 0, int words = 0)
-           : Puzzle(n, d, dur), wordsFound(words) {
-       }
-
-       string getType() const override
-       {
-           return "Word Puzzle";
-       }
-
-       int getWordsFound() const { return wordsFound; }
-
-       void addWordHint(const string& hint)
-       {
-           collection.addItem(hint);
-       }
-
-       // REQUIRED override print()
-       void print() const override
-       {
-           Puzzle::print(); // call base
-           cout << "Words Found: " << wordsFound << endl;
-           cout << "Hints stored: " << collection.getCount() << endl;
-       }
-   };
-
-   /* =====================================================
-      ORIGINAL PUZZLE TRACKER CLASS
-      ===================================================== */
-   class PuzzleTracker
-   {
-   private:
-       PuzzleSession sessions[MAX_SESSIONS];
-       int sessionCount;
-
-   public:
-       PuzzleTracker();
-
-       bool addSession(const PuzzleSession& s);
-       int getSessionCount() const;
-       double calculateAverageTime(const double times[], int size) const;
-   };
-
-   /* -------------------- Constructor -------------------- */
-   PuzzleTracker::PuzzleTracker()
-   {
-       sessionCount = 0;
-   }
-
-   /* -------------------- Add Session -------------------- */
-   bool PuzzleTracker::addSession(const PuzzleSession& s)
-   {
-       if (sessionCount >= MAX_SESSIONS)
-           return false;
-
-       sessions[sessionCount++] = s;
-       return true;
-   }
-
-   /* -------------------- Calculation -------------------- */
-   double PuzzleTracker::calculateAverageTime(const double times[], int size) const
-   {
-       if (size <= 0)
-           return 0.0;
-
-       double total = 0;
-       for (int i = 0; i < size; i++)
-           total += times[i];
-
-       return total / size;
-   }
-
-   /* -------------------- Accessor -------------------- */
-   int PuzzleTracker::getSessionCount() const
-   {
-       return sessionCount;
-   }
-
-   /* ==================== MAIN ==================== */
 #ifndef RUN_TESTS
-   int main()
-   {
-       LogicPuzzle lp("Sudoku", MEDIUM, 25, 3);
-       lp.addLogicTool("Grid Notes");
-       lp.print();
 
-       WordPuzzle wp("Crossword", HARD, 40, 15);
-       wp.addWordHint("Dictionary");
-       wp.print();
+/* ===========================
+   PROGRAM MODE
+   =========================== */
+int main()
+{
+#ifdef _DEBUG
+    // Enable memory leak detection
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+    
+    PuzzleManager manager;
+    
+    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
+    manager.add(new WordPuzzle("Crossword", 20, EASY, 15));
+    
+    manager.printAll();
+    
+    manager.remove(0);
+    
+    cout << "\nAfter removal:\n";
+    manager.printAll();
+    
+    return 0;
+}
+#else
 
-       return 0;
-   }
+/* ===========================
+   TEST MODE
+   =========================== */
+
+TEST_CASE("Constructor initializes derived correctly")
+{
+    LogicPuzzle lp("Sudoku", 30, MEDIUM, 4);
+
+    CHECK(lp.getName() == "Sudoku");
+    CHECK(lp.getDuration() == 30);
+    CHECK(lp.getDifficulty() == MEDIUM);
+    CHECK(lp.getCluesUsed() == 4);
+}
+
+TEST_CASE("Pure virtual override works")
+{
+    LogicPuzzle lp("Sudoku", 30, MEDIUM, 4);
+    WordPuzzle wp("Crossword", 20, EASY, 10);
+
+    CHECK(lp.getCategory() == "Logic");
+    CHECK(wp.getCategory() == "Word");
+}
+
+TEST_CASE("Polymorphism via base pointer")
+{
+    Puzzle* p = new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    CHECK(p->getCategory() == "Logic");
+
+    delete p;
+}
+
+TEST_CASE("Manager adds items")
+{
+    PuzzleManager manager;
+
+    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
+    manager.add(new WordPuzzle("Crossword", 20, EASY, 10));
+
+    CHECK(manager.getSize() == 2);
+}
+
+TEST_CASE("Manager removes items")
+{
+    PuzzleManager manager;
+
+    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
+    manager.add(new WordPuzzle("Crossword", 20, EASY, 10));
+
+    manager.remove(0);
+
+    CHECK(manager.getSize() == 1);
+}
+
+TEST_CASE("Dynamic polymorphic storage")
+{
+    PuzzleManager manager;
+
+    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
+
+    CHECK(manager.getSize() == 1);
+}
+
 #endif
 
-   /* ==================== DOCTESTS ==================== */
-#ifdef RUN_TESTS
-
-   TEST_CASE("Base class type")
-   {
-       Puzzle p("Test", EASY, 10);
-       CHECK(p.getType() == "Generic Puzzle");
-   }
-
-   TEST_CASE("LogicPuzzle inheritance")
-   {
-       LogicPuzzle lp("Sudoku", MEDIUM, 30, 3);
-       CHECK(lp.getType() == "Logic Puzzle");
-       CHECK(lp.getCluesUsed() == 3);
-   }
-
-   TEST_CASE("WordPuzzle inheritance")
-   {
-       WordPuzzle wp("Crossword", HARD, 45, 15);
-       CHECK(wp.getType() == "Word Puzzle");
-       CHECK(wp.getWordsFound() == 15);
-   }
-
-   TEST_CASE("Composition inside derived")
-   {
-       LogicPuzzle lp;
-       lp.addLogicTool("Notes");
-       CHECK(lp.getCluesUsed() == 0);
-   }
-
-   TEST_CASE("Average calculation normal")
-   {
-       PuzzleTracker t;
-       double times[MAX_TIMES] = { 10,20,30,40,50 };
-       CHECK(t.calculateAverageTime(times, MAX_TIMES) == doctest::Approx(30.0));
-   }
-
-   TEST_CASE("Add session and count")
-   {
-       PuzzleTracker t;
-       PuzzleSession s = { "Sudoku", EASY, 3,{10,10,10,10,10} };
-       CHECK(t.addSession(s));
-       CHECK(t.getSessionCount() == 1);
-   }
-
-#endif
