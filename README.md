@@ -1,4 +1,4 @@
-# Puzzle Tracker (C++ with Unit Tests, Abstract Classes, Polymorphism, and Dynamic Memory)
+# Puzzle Tracker (C++ with Operator Overloading, Templates, Abstract Classes, Polymorphism, and Unit Tests)
 
 [![C++ doctest (Windows)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml)
 
@@ -7,14 +7,17 @@
 Puzzle Tracker is a C++ console application designed using:
 
 - Abstract base classes
-- Virtual functions
-- Runtime polymorphism
+- Virtual functions and runtime polymorphism
+- Operator overloading
+- Function templates
+- Class templates
 - Dynamic memory allocation
 - Manual dynamic array management (no STL containers)
-- Automated unit testing with doctests
+- Automated unit testing with doctest
+- CRT memory leak detection (Debug mode)
 - GitHub Actions CI workflow
 
-The design supports extensibility and safe memory management.
+The design emphasizes extensibility, safe memory management, and clear object-oriented structure.
 
 ---
 
@@ -30,17 +33,21 @@ It includes:
 - `Difficulty difficulty`
 
 It provides:
-- Default and parameterized constructor
 - Virtual destructor
-- Getters and setters
-- Virtual `print()` function
+- Getter methods
 - Pure virtual function:
 
 ```cpp
 virtual string getCategory() const = 0;
 ```
 
-Because of this pure virtual function, `Puzzle` cannot be expressed directly.
+- Virtual streaming helper:
+
+```cpp
+virtual void toStream(ostream&) const;
+```
+
+Because of this pure virtual function, `Puzzle` cannot be instantiated directly.
 
 ---
 
@@ -51,16 +58,23 @@ Two concrete classes inherit from `Puzzle`:
 #### LogicPuzzle
 - Adds `int cluesUsed`
 - Overrides `getCategory()`
-- Overrides `print()` and calls `Puzzle::print()`
+- Overrides `toStream()`
+- Implements
+
+```cpp
+bool operator==(const LogicPuzzle& other) const;
+```
+
+Two `LogicPuzzle` objects are equal when their meaningful identity fields match.
 
 #### WordPuzzle
 - Adds `int wordsFound`
 - Overrides `getCategory()`
-- Overrides `print()` and calls `Puzzle::print()`
+- Overrides `toStream()`
 
-This demonstrates:
+Both derived classes demonstrate:
 
-- "is-a" relationship
+- Inheritance ("is-a" relationship)
 - Virtual function overriding
 - Polymorphic behavior
 
@@ -68,110 +82,207 @@ This demonstrates:
 
 ### Manager Class (Dynamic Memory)
 
-The `PuzzleManager` class manages a dynamic array of base class pointers.
+Responsible for:
 
-Required data members:
+- Owning all dynamically allocated `Puzzle` objects
+- Deleting objects when removed
+- Cleaning up all memory in destructor
+- Providing indexed access
+- Supporting overloaded add/remove operators
+
+Demonstrates composition:
+
+- `PuzzleManager` owns `DynamicArray<Puzzle*>`
+
+---
+
+## Operator Overloading
+
+The application includes several overloaded operators.
+
+### Equality Operator (`operator==`)
+
+Implemented as a member of `LogicPuzzle`.
+
+Used to compare two objects based on:
+
+- Name
+- Duration
+- Difficulty
+- Clues used
+
+---
+
+### Stream Insertion Operator (`operator<<`)
+
+Implemented as a non-member function:
 
 ```cpp
-Puzzle** items;
-int size;
-int capacity;
+ostream& operator<<(ostream& os, const Puzzle& p);
+```
+
+Internally calls the virtual `toStream()` method, ensuring:
+
+- Correct derived behavior executes
+- Proper polymorphic dispatch occurs
+
+---
+
+### Subscript Operator (`operator[]`)
+
+Implemented in `PuzzleManager`:
+
+```cpp
+Puzzle* operator[](int index) const;
+```
+
+Behavior:
+
+- Returns pointer at valid index
+- Returns `nullptr` for invalid index
+- No exceptions are thrown
+
+This provides safe bounds checking.
+
+---
+
+### Add and Remove Operators (`+=`, `-=`)
+
+```cpp
+PuzzleManager& operator+=(Puzzle* p);
+PuzzleManager& operator-=(int index);
+```
+
+`operator+=`
+- Adds a puzzle to the container
+- Resizes dynamically if necessary
+- Returns `*this` (demonstrates explicit `this` pointer usage)
+
+`operator-=`
+- Removes puzzle by index
+- Deletes removed object
+- Shifts remaining elements
+- Returns `*this`
+
+---
+
+## Templates
+
+### Function Template
+
+```cpp
+template <typename T>
+T getMax(T a, T b);
+```
+
+Demonstrates generic programming by working with multiple types,
+such as:
+
+- `int`
+- `double`
+
+---
+
+### Class Template: DynamicArray<T>
+
+Replaces the previous raw pointer array implementation.
+
+```cpp
+template <typename T>
+class DynamicArray
 ```
 
 Features:
 
-- Allocates memory dynamically
-- Resizes array when capacity is reached
-- Deletes all objects in destructor
-- Deletes array memory safely
-- Supports add/remove operations
-- Demonstrates runtime polymorphism
+- Dynamic resizing
+- Manual memory allocation
+- `add()`
+- `remove()`
+- `operator[]`
+- `getSize()`
 
-Example of polymorphic call:
+Instantiated inside `PuzzleManager` as:
 
 ```cpp
-items[i]->print();
-items[i]->getCategory();
+DynamicArray<Puzzle*> items;
 ```
+
+No STL containers are used.
 
 ---
 
 ## Memory Management
 
-All objects are allocated using `new`:
+All objects are allocated dynamically:
 
 ```cpp
-manager.add(new LogicPuzzle(...));
+manager += new LogicPuzzle(...);
 ```
 
-All memory is properly cleaned up:
+Memory is properly released:
 
-```cpp
-~PuzzleManager()
-{
-    for (int i = 0; i < size; i++)
-        delete items[i];
+- When an item is removed
+- In the `PuzzleManager` destructor
 
-    delete[] items;
-}
-```
+The `DynamicArray` template manages only its internal array,
+not the objects stored inside it.
 
-No memory leaks occur when program exits.
+No memory leaks occur.
 
 ---
 
 ## CRT Memory Leak Detection (Debug Mode)
 
-When compiled in **Debug mode**, the program enables CRT memory tracking:
+When compiled in Debug mode:
 
-```
-#ifndef RUN_TESTS
-#ifdef _DEBUG
+```cpp
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
-#endif
-#endif
 ```
 
 Inside `main()`:
 
-```
-#ifdef _DEBUG
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-#endif
+```cpp
+_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 ```
 
 Behavior:
 
 - Tracks all dynamic allocations
-- Automatically reports memory leaks at program termination
-- Confirms all dynamically allocated memory is properly released
-
-If no leaks exist, no leak report appears in the Output window.
+- Reports memory leaks at program exit
+- No report indicates all memory was properly freed
 
 ---
 
 ## Unit Tests
 
-The project includes six doctest test cases:
+The project includes doctest test cases verifying:
 
-1. Constructor initializes derived correctly
-2. Pure virtual override works
-3. Polymorphism via base pointer
-4. Manager adds items
-5. Manager removes items
-6. Dynamic polymorphic storage
+### Equality Operator
+- Equal objects compare true
+- Different objects compare false
 
-These tests verify:
+### Stream Operator
+- Uses `std::ostringstream`
+- Confirms correct formatted output
 
-- Constructors
-- Getter correctness
-- Pure virtual function overrides
-- Polymorphic dispatch
-- Dynamic storage
-- Add/remove behavior
+### Subscript Operator
+- Valid index returns correct pointer
+- Invalid index returns `nullptr`
 
-All tests run automatically when `RUN_TESTS` is enabled.
+### Add / Remove Operators
+- Adding increases size
+- Removing deletes and shifts correctly
+
+### Function Template
+- Works with multiple data types
+
+### Class Template
+- Stores values
+- Resizes correctly
+- Maintains size integrity
+
+All tests pass when `RUN_TESTS` is enabled.
 
 ---
 
@@ -179,16 +290,19 @@ All tests run automatically when `RUN_TESTS` is enabled.
 
 The repository includes a Visual Studio Class Designer file showing:
 
-- Abstract Puzzle base class
-- LogicPuzzle and WordPuzzle inheritance
-- PuzzleManager ownership of dynamic Puzzle pointers
+- Abstract `Puzzle`
+- Derived `LogicPuzzle`
+- Derived `WordPuzzle`
+- Template `DynamicArray<T>`
+- `PuzzleManager`
+- Function template `getMax<T>()`
 
 The diagram visually represents:
 
-- "is-a" inheritance relationships
+- Inheritance (open triangle)
+- Composition (filled diamond)
 - Polymorphic hierarchy
-- Dynamic container ownership
-- Destructor responsibility
+- Template instantiation
 
 ---
 

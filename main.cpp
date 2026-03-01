@@ -4,6 +4,7 @@
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
+#include <sstream>
 #endif
 
 // ===========================
@@ -20,6 +21,15 @@
 #include <string>
 
 using namespace std;
+
+/* ===========================
+   FUNCTION TEMPLATE
+   =========================== */
+template <typename T>
+T getMax(T a, T b)
+{
+    return (a > b) ? a : b;
+}
 
 /* ===========================
    ENUM
@@ -48,26 +58,30 @@ public:
         : name(n), duration(dur), difficulty(diff) {
     }
 
-    virtual ~Puzzle() {}  // Virtual destructor REQUIRED
-
-    void setName(const string& n) { name = n; }
-    void setDuration(int d) { duration = d; }
-    void setDifficulty(Difficulty diff) { difficulty = diff; }
+    virtual ~Puzzle() {}
 
     string getName() const { return name; }
     int getDuration() const { return duration; }
     Difficulty getDifficulty() const { return difficulty; }
 
-    virtual void print() const
+    virtual string getCategory() const = 0;
+
+    virtual void toStream(ostream& os) const
     {
-        cout << "Name: " << name
+        os << "Name: " << name
             << ", Duration: " << duration
             << ", Difficulty: " << difficulty;
     }
-
-    // PURE VIRTUAL FUNCTION (makes class abstract)
-    virtual string getCategory() const = 0;
 };
+
+/* ===========================
+   STREAM OPERATOR (NON-MEMBER FOR POLYMORPHISM)
+   =========================== */
+ostream& operator<<(ostream& os, const Puzzle& p)
+{
+    p.toStream(os);
+    return os;
+}
 
 /* ===========================
    DERIVED CLASS 1
@@ -85,7 +99,6 @@ public:
         : Puzzle(n, dur, diff), cluesUsed(clues) {
     }
 
-    void setCluesUsed(int c) { cluesUsed = c; }
     int getCluesUsed() const { return cluesUsed; }
 
     string getCategory() const override
@@ -93,10 +106,19 @@ public:
         return "Logic";
     }
 
-    void print() const override
+    void toStream(ostream& os) const override
     {
-        Puzzle::print();
-        cout << ", Clues Used: " << cluesUsed;
+        Puzzle::toStream(os);
+        os << ", Clues Used: " << cluesUsed;
+    }
+
+    /* operator== */
+    bool operator==(const LogicPuzzle& other) const
+    {
+        return name == other.name &&
+            duration == other.duration &&
+            difficulty == other.difficulty &&
+            cluesUsed == other.cluesUsed;
     }
 };
 
@@ -116,7 +138,6 @@ public:
         : Puzzle(n, dur, diff), wordsFound(words) {
     }
 
-    void setWordsFound(int w) { wordsFound = w; }
     int getWordsFound() const { return wordsFound; }
 
     string getCategory() const override
@@ -124,58 +145,54 @@ public:
         return "Word";
     }
 
-    void print() const override
+    void toStream(ostream& os) const override
     {
-        Puzzle::print();
-        cout << ", Words Found: " << wordsFound;
+        Puzzle::toStream(os);
+        os << ", Words Found: " << wordsFound;
     }
 };
 
 /* ===========================
-   MANAGER CLASS (Dynamic Array)
+   CLASS TEMPLATE (DynamicArray)
    =========================== */
-class PuzzleManager
+template <typename T>
+class DynamicArray
 {
 private:
-    Puzzle** items;
+    T* data;
     int size;
     int capacity;
 
     void resize()
     {
         capacity *= 2;
-
-        Puzzle** temp = new Puzzle * [capacity];
+        T* temp = new T[capacity];
 
         for (int i = 0; i < size; i++)
-            temp[i] = items[i];
+            temp[i] = data[i];
 
-        delete[] items;
-        items = temp;
+        delete[] data;
+        data = temp;
     }
 
 public:
-    PuzzleManager(int cap = 5)
+    DynamicArray(int cap = 5)
+        : size(0), capacity(cap)
     {
-        capacity = cap;
-        size = 0;
-        items = new Puzzle * [capacity];
+        data = new T[capacity];
     }
 
-    ~PuzzleManager()
+    ~DynamicArray()
     {
-        for (int i = 0; i < size; i++)
-            delete items[i];
-
-        delete[] items;
+        delete[] data;
     }
 
-    void add(Puzzle* p)
+    void add(T item)
     {
         if (size >= capacity)
             resize();
 
-        items[size++] = p;
+        data[size++] = item;
     }
 
     void remove(int index)
@@ -183,26 +200,94 @@ public:
         if (index < 0 || index >= size)
             return;
 
-        delete items[index];
-
         for (int i = index; i < size - 1; i++)
-            items[i] = items[i + 1];
+            data[i] = data[i + 1];
 
         size--;
     }
 
-    void printAll() const
+    T operator[](int index) const
     {
-        for (int i = 0; i < size; i++)
-        {
-            items[i]->print();   // Polymorphism
-            cout << " | Category: "
-                << items[i]->getCategory()
-                << endl;
-        }
+        if (index < 0 || index >= size)
+            return nullptr;
+
+        return data[index];
     }
 
     int getSize() const { return size; }
+};
+
+/* ===========================
+   MANAGER CLASS
+   =========================== */
+class PuzzleManager
+{
+private:
+    DynamicArray<Puzzle*> items;
+
+public:
+    void add(Puzzle* p)
+    {
+        items.add(p);
+    }
+
+    void remove(int index)
+    {
+        Puzzle* toDelete = items[index];
+        if (toDelete != nullptr)
+        {
+            delete toDelete;
+            items.remove(index);
+        }
+    }
+
+    /* operator[] */
+    Puzzle* operator[](int index) const
+    {
+        return items[index];
+    }
+
+    /* operator+= */
+    PuzzleManager& operator+=(Puzzle* p)
+    {
+        add(p);
+        return *this;   // explicit this pointer usage
+    }
+
+    /* operator-= */
+    PuzzleManager& operator-=(int index)
+    {
+        remove(index);
+        return *this;
+    }
+
+    void printAll() const
+    {
+        for (int i = 0; i < items.getSize(); i++)
+        {
+            if (items[i] != nullptr)
+            {
+                cout << *items[i]
+                    << " | Category: "
+                    << items[i]->getCategory()
+                    << endl;
+            }
+        }
+    }
+
+    int getSize() const
+    {
+        return items.getSize();
+    }
+
+    ~PuzzleManager()
+    {
+        for (int i = 0; i < items.getSize(); i++)
+        {
+            if (items[i] != nullptr)
+                delete items[i];
+        }
+    }
 };
 
 #ifndef RUN_TESTS
@@ -213,87 +298,83 @@ public:
 int main()
 {
 #ifdef _DEBUG
-    // Enable memory leak detection
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
     PuzzleManager manager;
 
-    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
-    manager.add(new WordPuzzle("Crossword", 20, EASY, 15));
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager += new WordPuzzle("Crossword", 20, EASY, 15);
 
     manager.printAll();
 
-    manager.remove(0);
+    manager -= 0;
 
     cout << "\nAfter removal:\n";
     manager.printAll();
 
     return 0;
 }
+
 #else
 
 /* ===========================
    TEST MODE
    =========================== */
 
-TEST_CASE("Constructor initializes derived correctly")
+TEST_CASE("Equality operator works")
 {
-    LogicPuzzle lp("Sudoku", 30, MEDIUM, 4);
+    LogicPuzzle a("Sudoku", 30, MEDIUM, 3);
+    LogicPuzzle b("Sudoku", 30, MEDIUM, 3);
+    LogicPuzzle c("Sudoku", 30, MEDIUM, 4);
 
-    CHECK(lp.getName() == "Sudoku");
-    CHECK(lp.getDuration() == 30);
-    CHECK(lp.getDifficulty() == MEDIUM);
-    CHECK(lp.getCluesUsed() == 4);
+    CHECK(a == b);
+    CHECK_FALSE(a == c);
 }
 
-TEST_CASE("Pure virtual override works")
+TEST_CASE("Stream operator works")
 {
-    LogicPuzzle lp("Sudoku", 30, MEDIUM, 4);
-    WordPuzzle wp("Crossword", 20, EASY, 10);
+    LogicPuzzle lp("Sudoku", 30, MEDIUM, 3);
+    ostringstream oss;
+    oss << lp;
 
-    CHECK(lp.getCategory() == "Logic");
-    CHECK(wp.getCategory() == "Word");
+    CHECK(oss.str().find("Sudoku") != string::npos);
 }
 
-TEST_CASE("Polymorphism via base pointer")
-{
-    Puzzle* p = new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
-
-    CHECK(p->getCategory() == "Logic");
-
-    delete p;
-}
-
-TEST_CASE("Manager adds items")
+TEST_CASE("Subscript operator works")
 {
     PuzzleManager manager;
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
 
-    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
-    manager.add(new WordPuzzle("Crossword", 20, EASY, 10));
-
-    CHECK(manager.getSize() == 2);
+    CHECK(manager[0] != nullptr);
+    CHECK(manager[5] == nullptr);
 }
 
-TEST_CASE("Manager removes items")
+TEST_CASE("Add and remove operators")
 {
     PuzzleManager manager;
-
-    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
-    manager.add(new WordPuzzle("Crossword", 20, EASY, 10));
-
-    manager.remove(0);
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
 
     CHECK(manager.getSize() == 1);
+
+    manager -= 0;
+
+    CHECK(manager.getSize() == 0);
 }
 
-TEST_CASE("Dynamic polymorphic storage")
+TEST_CASE("Function template works")
 {
-    PuzzleManager manager;
+    CHECK(getMax(3, 5) == 5);
+    CHECK(getMax(3.5, 2.1) == 3.5);
+}
 
-    manager.add(new LogicPuzzle("Sudoku", 30, MEDIUM, 3));
+TEST_CASE("Class template works")
+{
+    DynamicArray<int> arr;
+    arr.add(10);
+    arr.add(20);
 
-    CHECK(manager.getSize() == 1);
+    CHECK(arr.getSize() == 2);
 }
 
 #endif
