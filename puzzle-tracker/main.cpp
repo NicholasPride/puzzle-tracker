@@ -370,4 +370,3 @@ TEST_CASE("Function template works")
 }
 
 #endif
-

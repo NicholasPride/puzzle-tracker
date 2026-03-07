@@ -1,4 +1,4 @@
-# Puzzle Tracker (C++ with Operator Overloading, Templates, Abstract Classes, Polymorphism, and Unit Tests)
+# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Abstract Classes, Polymorphism, and Unit Tests)
 
 [![C++ doctest (Windows)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml)
 
@@ -11,13 +11,14 @@ Puzzle Tracker is a C++ console application designed using:
 - Operator overloading
 - Function templates
 - Class templates
-- Dynamic memory allocation
-- Manual dynamic array management (no STL containers)
+- Exception handling
+- Custom exception classes
+- Manual dynamic memory management (no STL containers)
 - Automated unit testing with doctest
 - CRT memory leak detection (Debug mode)
 - GitHub Actions CI workflow
 
-The design emphasizes extensibility, safe memory management, and clear object-oriented structure.
+The design emphasizes safe memory usage, robust error handling, and clear object-oriented structure.
 
 ---
 
@@ -27,27 +28,27 @@ The design emphasizes extensibility, safe memory management, and clear object-or
 
 The `Puzzle` class is abstract.
 
-It includes:
+It defines properties common to all puzzle types:
+
 - `string name`
 - `int duration`
 - `Difficulty difficulty`
 
-It provides:
-- Virtual destructor
-- Getter methods
-- Pure virtual function:
+Key feature:
 
 ```cpp
 virtual string getCategory() const = 0;
 ```
 
-- Virtual streaming helper:
+Because this function is pure virtual, the `Puzzle` class cannot be instantiated directly.
+
+The class also includes a virtual helper function used for polymorphic output:
 
 ```cpp
 virtual void toStream(ostream&) const;
 ```
 
-Because of this pure virtual function, `Puzzle` cannot be instantiated directly.
+A virtual destructor ensures correct cleanup when deleting derived objects through base-class pointers.
 
 ---
 
@@ -65,7 +66,12 @@ Two concrete classes inherit from `Puzzle`:
 bool operator==(const LogicPuzzle& other) const;
 ```
 
-Two `LogicPuzzle` objects are equal when their meaningful identity fields match.
+Two `LogicPuzzle` objects are considered equal when the following fields match:
+
+- `name`
+- `duration`
+- `difficulty`
+- `cluesUsed`
 
 #### WordPuzzle
 - Adds `int wordsFound`
@@ -86,9 +92,10 @@ Responsible for:
 
 - Owning all dynamically allocated `Puzzle` objects
 - Deleting objects when removed
-- Cleaning up all memory in destructor
+- Storing puzzle pointers
+- Adding/removing puzzles
 - Providing indexed access
-- Supporting overloaded add/remove operators
+- Releasing all allocated memory
 
 Demonstrates composition:
 
@@ -104,12 +111,11 @@ The application includes several overloaded operators.
 
 Implemented as a member of `LogicPuzzle`.
 
-Used to compare two objects based on:
+```cpp
+bool operator==(const LogicPuzzle& other) const;
+```
 
-- Name
-- Duration
-- Difficulty
-- Clues used
+Compares two objects based on their meaningful state.
 
 ---
 
@@ -121,7 +127,7 @@ Implemented as a non-member function:
 ostream& operator<<(ostream& os, const Puzzle& p);
 ```
 
-Internally calls the virtual `toStream()` method, ensuring:
+Internally calls the virtual function,`p.toStream(os)`, ensuring:
 
 - Correct derived behavior executes
 - Proper polymorphic dispatch occurs
@@ -138,31 +144,43 @@ Puzzle* operator[](int index) const;
 
 Behavior:
 
-- Returns pointer at valid index
-- Returns `nullptr` for invalid index
-- No exceptions are thrown
+- Returns the puzzle pointer when the index is valid
+- Throws a `PuzzleException` if the index is invalid
 
-This provides safe bounds checking.
+Examples of invalid cases:
+
+- Negative index
+- Index greater than or equal to container size
 
 ---
 
 ### Add and Remove Operators (`+=`, `-=`)
 
+#### Add Operator
+
 ```cpp
 PuzzleManager& operator+=(Puzzle* p);
+```
+
+Adds a puzzle to the container.
+
+Returns `*this` so operations can be chained.
+
+---
+
+#### Remove Operator
+
+```cpp
 PuzzleManager& operator-=(int index);
 ```
 
-`operator+=`
-- Adds a puzzle to the container
-- Resizes dynamically if necessary
-- Returns `*this` (demonstrates explicit `this` pointer usage)
+Behavior:
 
-`operator-=`
-- Removes puzzle by index
-- Deletes removed object
+- Deletes the puzzle at the given index
 - Shifts remaining elements
-- Returns `*this`
+- Decreases container size
+
+If the index is invalid, a `PuzzleException` is thrown.
 
 ---
 
@@ -175,8 +193,9 @@ template <typename T>
 T getMax(T a, T b);
 ```
 
-Demonstrates generic programming by working with multiple types,
-such as:
+Returns the larger of two values.
+
+Demonstrates generic programming by working with multiple types, such as:
 
 - `int`
 - `double`
@@ -196,10 +215,12 @@ Features:
 
 - Dynamic resizing
 - Manual memory allocation
+- Generic type storage
 - `add()`
 - `remove()`
 - `operator[]`
 - `getSize()`
+- `resize()`
 
 Instantiated inside `PuzzleManager` as:
 
@@ -208,6 +229,65 @@ DynamicArray<Puzzle*> items;
 ```
 
 No STL containers are used.
+
+---
+
+## Exception Handling
+
+The program uses exception-based error handling to prevent invalid operations.
+
+---
+
+### Custom Exception Class
+
+A custom exception class is defined:
+
+```cpp
+class PuzzleException : public runtime_error
+```
+
+This class inherits from `std::runtime_error` and stores an error message.
+
+Example usage:
+
+```cpp
+throw PuzzleException("DynamicArray index out of bounds.");
+```
+
+The message can be accessed using:
+
+```cpp
+what()
+```
+
+---
+
+### Where Exceptions Are Used
+
+#### DynamicArray<T>
+
+Exceptions are thrown when:
+
+- Accessing an invalid index
+- Removing an invalid index
+
+Example errors:
+
+```
+DynamicArray index out of bounds
+DynamicArray removal index out of bounds
+```
+
+---
+
+#### PuzzleManager
+
+Exceptions also occur when:
+
+- `operator[]` receives an invalid index
+- `operator-=` attempts to remove an invalid item
+
+This prevents invalid operations from silently failing.
 
 ---
 
@@ -224,8 +304,7 @@ Memory is properly released:
 - When an item is removed
 - In the `PuzzleManager` destructor
 
-The `DynamicArray` template manages only its internal array,
-not the objects stored inside it.
+The `DynamicArray` template manages only its internal array, not the objects stored inside it.
 
 No memory leaks occur.
 
@@ -256,31 +335,31 @@ Behavior:
 
 ## Unit Tests
 
-The project includes doctest test cases verifying:
+The project includes doctest test cases verifying program behavior.
 
-### Equality Operator
-- Equal objects compare true
-- Different objects compare false
+### Equality Operator 
 
-### Stream Operator
-- Uses `std::ostringstream`
-- Confirms correct formatted output
+- Verifies `LogicPuzzle` objects compare correctly using `operator==`
 
-### Subscript Operator
-- Valid index returns correct pointer
-- Invalid index returns `nullptr`
+### operator[] Exception 
 
-### Add / Remove Operators
-- Adding increases size
-- Removing deletes and shifts correctly
+- Ensures invalid index access throws `PuzzleException`
 
-### Function Template
-- Works with multiple data types
+### operator-= Exception 
 
-### Class Template
-- Stores values
-- Resizes correctly
-- Maintains size integrity
+- Ensures invalid removal throws `PuzzleException`
+
+### Template Class Exception 
+
+- Verifies `DynamicArray<T>` throws exceptions when accessing invalid indices
+
+### Custom Exception 
+
+- Confirms `PuzzleException::what()` returns the correct message
+
+### Function Template 
+
+- Ensures `getMax<T>()` works correctly with multiple types
 
 All tests pass when `RUN_TESTS` is enabled.
 
@@ -290,11 +369,11 @@ All tests pass when `RUN_TESTS` is enabled.
 
 The repository includes a Visual Studio Class Designer file showing:
 
-- Abstract `Puzzle`
-- Derived `LogicPuzzle`
-- Derived `WordPuzzle`
-- Template `DynamicArray<T>`
-- `PuzzleManager`
+- Abstract class `Puzzle`
+- Derived classes `LogicPuzzle` and `WordPuzzle`
+- Template class `DynamicArray<T>`
+- Manager class `PuzzleManager`
+- Custom exception `PuzzleException`
 - Function template `getMax<T>()`
 
 The diagram visually represents:
@@ -302,14 +381,14 @@ The diagram visually represents:
 - Inheritance (open triangle)
 - Composition (filled diamond)
 - Polymorphic hierarchy
-- Template instantiation
+- Template relationships
+- Exception usage
 
 ---
 
 ## Build Instructions
 
-This project supports **two execution modes**, controlled by a
-compile-time switch.
+This project supports **two execution modes**, controlled by a compile-time switch.
 
 ### Test Mode
 Runs the unit tests.
