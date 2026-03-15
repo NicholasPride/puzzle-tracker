@@ -340,7 +340,6 @@ int main()
    TEST MODE
    =========================== */
 
-
 TEST_CASE("operator[] throws on invalid index")
 {
     PuzzleManager manager;

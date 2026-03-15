@@ -1,4 +1,4 @@
-# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Abstract Classes, Polymorphism, and Unit Tests)
+# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Recursion, Abstract Classes, Polymorphism, and Unit Tests)
 
 [![C++ doctest (Windows)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml)
 
@@ -13,6 +13,7 @@ Puzzle Tracker is a C++ console application designed using:
 - Class templates
 - Exception handling
 - Custom exception classes
+- Recursion
 - Manual dynamic memory management (no STL containers)
 - Automated unit testing with doctest
 - CRT memory leak detection (Debug mode)
@@ -291,6 +292,64 @@ This prevents invalid operations from silently failing.
 
 ---
 
+## Recursion
+
+The program includes a recursive member function implemented inside `PuzzleManager`.
+
+Recursion allows a function to call itself until a stopping condition is reached.
+
+---
+
+### Recursive Function
+
+```cpp
+int countPuzzlesRecursive();
+```
+
+This function counts the number of puzzles stored in the manager.
+
+It calls a helper function.
+
+---
+
+### Recursive Helper Function
+
+```cpp
+int countRecursiveHelper(int index);
+```
+
+---
+
+### Base Case
+
+This case stops recursion when the index reaches the container size.
+
+```cpp
+if(index >= items.getSize())
+return 0;
+```
+
+---
+
+### Recursive Case
+
+The case counts the current puzzle and recursively calls itself.
+
+```cpp
+return 1 + countRecursiveHelper(index + 1);
+```
+
+Rules satisfied:
+
+```
+No loops used
+Clear base case
+Clear recursive case
+Member function implementation
+```
+
+---
+
 ## Memory Management
 
 All objects are allocated dynamically:
@@ -337,10 +396,6 @@ Behavior:
 
 The project includes doctest test cases verifying program behavior.
 
-### Equality Operator 
-
-- Verifies `LogicPuzzle` objects compare correctly using `operator==`
-
 ### operator[] Exception 
 
 - Ensures invalid index access throws `PuzzleException`
@@ -361,6 +416,20 @@ The project includes doctest test cases verifying program behavior.
 
 - Ensures `getMax<T>()` works correctly with multiple types
 
+### Equality Operator 
+
+- Verifies `LogicPuzzle` objects compare correctly using `operator==`
+
+### Recursive Function 
+
+- Verifies recursive counting works correctly.
+
+Example:
+
+```cpp
+CHECK(manager.countPuzzlesRecursive() == 2);
+```
+
 All tests pass when `RUN_TESTS` is enabled.
 
 ---
@@ -375,6 +444,7 @@ The repository includes a Visual Studio Class Designer file showing:
 - Manager class `PuzzleManager`
 - Custom exception `PuzzleException`
 - Function template `getMax<T>()`
+- Recursive functions `countPuzzlesRecursive()` and `countRecursiveHelper(int index)` 
 
 The diagram visually represents:
 
@@ -383,6 +453,7 @@ The diagram visually represents:
 - Polymorphic hierarchy
 - Template relationships
 - Exception usage
+- Recursive behavior
 
 ---
 

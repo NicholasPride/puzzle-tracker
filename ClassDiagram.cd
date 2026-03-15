@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="DynamicArray&lt;T&gt;">
+    <Position X="7.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIAAAAAEAIIAAAAAAAEAAAAAAQAQAAACEAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="LogicPuzzle">
+    <Position X="3.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAYAoAAAAAAAAAIAAAgAAAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Puzzle">
+    <Position X="4.25" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="difficulty" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="PuzzleException">
+    <Position X="4.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PuzzleManager">
+    <Position X="5.25" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAIAEAAAAAAgAAQAAAAEAQACAAAAAABACAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="items" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="WordPuzzle">
+    <Position X="5.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAgAgAAAAAAAAgIAAAAACAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Enum Name="Difficulty">
+    <Position X="7.25" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAIAAgAAAAAAAAAAAAAAAAAAAAAAAAAQAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
