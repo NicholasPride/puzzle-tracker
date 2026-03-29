@@ -1,4 +1,4 @@
-# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Recursion, Abstract Classes, Polymorphism, and Unit Tests)
+# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Recursion, Abstract Classes, Polymorphism, Searching & Sorting Algorithms, and Unit Tests)
 
 [![C++ doctest (Windows)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml)
 
@@ -13,13 +13,15 @@ Puzzle Tracker is a C++ console application designed using:
 - Class templates
 - Exception handling
 - Custom exception classes
-- Recursion
-- Manual dynamic memory management (no STL containers)
+- Recursive functions
+- STL container `std::vector`
+- Searching algorithms
+- Sorting algorithms
 - Automated unit testing with doctest
 - CRT memory leak detection (Debug mode)
 - GitHub Actions CI workflow
 
-The design emphasizes safe memory usage, robust error handling, and clear object-oriented structure.
+The design emphasizes safe memory usage, algorithm implementation, and clear object-oriented structure.
 
 ---
 
@@ -96,11 +98,18 @@ Responsible for:
 - Storing puzzle pointers
 - Adding/removing puzzles
 - Providing indexed access
+- Searching/sorting puzzles
+- Printing puzzle information
 - Releasing all allocated memory
+
+The container used is:
+```cpp
+vector<Puzzle*> items;
+```
 
 Demonstrates composition:
 
-- `PuzzleManager` owns `DynamicArray<Puzzle*>`
+- `PuzzleManager` owns the puzzle objects and deletes them in its destructor.
 
 ---
 
@@ -178,8 +187,8 @@ PuzzleManager& operator-=(int index);
 Behavior:
 
 - Deletes the puzzle at the given index
+- Removes the pointer from the container
 - Shifts remaining elements
-- Decreases container size
 
 If the index is invalid, a `PuzzleException` is thrown.
 
@@ -195,6 +204,12 @@ T getMax(T a, T b);
 ```
 
 Returns the larger of two values.
+
+Example usage:
+```cpp
+getMax(3,5);
+getMax(3.5, 2.1);
+```
 
 Demonstrates generic programming by working with multiple types, such as:
 
@@ -221,7 +236,6 @@ Features:
 - `remove()`
 - `operator[]`
 - `getSize()`
-- `resize()`
 
 Instantiated inside `PuzzleManager` as:
 
@@ -229,7 +243,73 @@ Instantiated inside `PuzzleManager` as:
 DynamicArray<Puzzle*> items;
 ```
 
-No STL containers are used.
+Although `PuzzleManager` uses `std::vector`, the template class remains part of the project to demonstrate template programming.
+
+---
+
+## Searching Algorithms
+
+### Sequential Search
+
+Sequential search scans the container from beginning to end.
+
+```cpp
+int sequentialSearch(const string& target);
+```
+
+Behavior:
+
+1. Compare the target with each puzzle name.
+2. Return the index if found.
+3. Return `-1` if the puzzle does not exist.
+
+Example:
+
+```cpp
+manager.sequentialSearch("Sudoku");
+```
+
+---
+
+### Binary Search
+
+Binary search operates on sorted data.
+
+```cpp
+int binarySearch(const string& target);
+```
+
+Steps performed:
+
+1. Sort the container.
+2. Compare the middle element.
+3. Narrow the search range.
+
+Binary search is faster than sequential search for large containers.
+
+---
+
+## Sorting Algorithm
+
+### Bubble Sort
+
+Bubble sort orders puzzles alphabetically by name.
+
+```cpp
+void bubbleSort();
+```
+
+Algorithm steps:
+
+1. Compare adjacent puzzle names
+2. Swap if they are out of order
+3. Repeat until sorted
+
+Example:
+
+```cpp
+manager.bubbleSort();
+```
 
 ---
 
@@ -325,7 +405,7 @@ int countRecursiveHelper(int index);
 This case stops recursion when the index reaches the container size.
 
 ```cpp
-if(index >= items.getSize())
+if(index >= items.size())
 return 0;
 ```
 
@@ -422,12 +502,40 @@ The project includes doctest test cases verifying program behavior.
 
 ### Recursive Function 
 
-- Verifies recursive counting works correctly.
+- Verifies that recursive counting works correctly.
 
 Example:
 
 ```cpp
 CHECK(manager.countPuzzlesRecursive() == 2);
+```
+
+### Searching Algorithms
+
+- Ensures `std::vector` is scanned from beginning to end.
+
+Sequential search:
+
+```cpp
+CHECK(manager.sequentialSearch("Sudoku") == 0);
+```
+
+- Ensures data sorting works correctly.
+
+Binary search:
+
+```cpp
+CHECK(manager.binarySearch("Beta") != -1);
+```
+
+### Sorting Algorithm
+
+- Verifies that puzzles are sorted alphabetically.
+
+Example:
+
+```cpp
+CHECK(manager[0]->getName() == "APuzzle");
 ```
 
 All tests pass when `RUN_TESTS` is enabled.
@@ -444,7 +552,9 @@ The repository includes a Visual Studio Class Designer file showing:
 - Manager class `PuzzleManager`
 - Custom exception `PuzzleException`
 - Function template `getMax<T>()`
-- Recursive functions `countPuzzlesRecursive()` and `countRecursiveHelper(int index)` 
+- Recursive functions `countPuzzlesRecursive()` and `countRecursiveHelper()`
+- Searching algorithms `sequentialSearch()` and `binarySearch()`
+- Sorting algorithm `bubbleSort()`
 
 The diagram visually represents:
 
@@ -452,8 +562,6 @@ The diagram visually represents:
 - Composition (filled diamond)
 - Polymorphic hierarchy
 - Template relationships
-- Exception usage
-- Recursive behavior
 
 ---
 

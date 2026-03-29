@@ -1,5 +1,5 @@
 // Uncomment this line to run unit tests
-#define RUN_TESTS
+//#define RUN_TESTS
 
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -20,6 +20,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
 
@@ -235,7 +236,7 @@ public:
 class PuzzleManager
 {
 private:
-    DynamicArray<Puzzle*> items;
+    vector<Puzzle*> items;
 
     /* ===========================
        RECURSIVE HELPER FUNCTION
@@ -243,7 +244,7 @@ private:
     int countRecursiveHelper(int index) const
     {
         // Base case
-        if (index >= items.getSize())
+        if (index >= items.size())
             return 0;
 
         // Recursive case
@@ -253,13 +254,16 @@ private:
 public:
     void add(Puzzle* p)
     {
-        items.add(p);
+        items.push_back(p);
     }
 
     /* operator[] */
     Puzzle* operator[](int index) const
     {
-        return items[index];  // Will throw if invalid
+        if (index < 0 || index >= items.size())
+            throw PuzzleException("Index out of bounds");
+
+        return items.at(index);  // Will throw if invalid
     }
 
     /* operator+= */
@@ -272,15 +276,20 @@ public:
     /* operator-= */
     PuzzleManager& operator-=(int index)
     {
-        Puzzle* toDelete = items[index]; // throws if invalid
+        if (index < 0 || index >= items.size())
+            throw PuzzleException("Removal index out of bounds");
+
+        Puzzle* toDelete = items.at(index); // throws if invalid
         delete toDelete;
-        items.remove(index);             // throws if invalid
+
+        items.erase(items.begin() + index); // throws if invalid
+
         return *this;
     }
 
     void printAll() const
     {
-        for (int i = 0; i < items.getSize(); i++)
+        for (size_t i = 0; i < items.size(); i++)
         {
             cout << *items[i]
                 << " | Category: "
@@ -291,20 +300,77 @@ public:
 
     int getSize() const
     {
-        return items.getSize();
+        return items.size();
     }
 
-    /* ===========================
-       RECURSIVE MEMBER FUNCTION
-       =========================== */
     int countPuzzlesRecursive() const
     {
         return countRecursiveHelper(0);
     }
 
+    /* ===========================
+       SEQUENTIAL SEARCH
+       =========================== */
+    int sequentialSearch(const string& target) const
+    {
+        for (size_t i = 0; i < items.size(); i++)
+        {
+            if (items.at(i)->getName() == target)
+                return i;
+        }
+
+        return -1;
+    }
+
+    /* ===========================
+       BUBBLE SORT
+       =========================== */
+    void bubbleSort()
+    {
+        for (size_t i = 0; i < items.size() - 1; i++)
+        {
+            for (size_t j = 0; j < items.size() - i - 1; j++)
+            {
+                if (items.at(j)->getName() > items.at(j + 1)->getName())
+                {
+                    Puzzle* temp = items.at(j);
+                    items.at(j) = items.at(j + 1);
+                    items.at(j + 1) = temp;
+                }
+            }
+        }
+    }
+
+    /* ===========================
+       BINARY SEARCH
+       =========================== */
+    int binarySearch(const string& target)
+    {
+        bubbleSort();
+
+        int low = 0;
+        int high = items.size() - 1;
+
+        while (low <= high)
+        {
+            int mid = (low + high) / 2;
+
+            string midName = items.at(mid)->getName();
+
+            if (midName == target)
+                return mid;
+            else if (midName < target)
+                low = mid + 1;
+            else
+                high = mid - 1;
+        }
+
+        return -1;
+    }
+
     ~PuzzleManager()
     {
-        for (int i = 0; i < items.getSize(); i++)
+        for (size_t i = 0; i < items.size(); i++)
         {
             delete items[i];
         }
@@ -324,11 +390,6 @@ int main()
     manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
     manager += new WordPuzzle("Crossword", 20, EASY, 15);
 
-    manager.printAll();
-
-    manager -= 0;
-
-    cout << "\nAfter removal:\n";
     manager.printAll();
 
     return 0;
@@ -401,6 +462,41 @@ TEST_CASE("Recursive puzzle count works")
     manager += new LogicPuzzle("KenKen", 25, HARD, 2);
 
     CHECK(manager.countPuzzlesRecursive() == 3);
+}
+
+TEST_CASE("Sequential search works")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager += new WordPuzzle("Crossword", 20, EASY, 10);
+
+    CHECK(manager.sequentialSearch("Sudoku") == 0);
+    CHECK(manager.sequentialSearch("Missing") == -1);
+}
+
+TEST_CASE("Bubble sort works")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("ZPuzzle", 30, MEDIUM, 3);
+    manager += new LogicPuzzle("APuzzle", 20, EASY, 2);
+
+    manager.bubbleSort();
+
+    CHECK(manager[0]->getName() == "APuzzle");
+}
+
+TEST_CASE("Binary search works")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Alpha", 30, MEDIUM, 3);
+    manager += new LogicPuzzle("Beta", 20, EASY, 2);
+    manager += new LogicPuzzle("Gamma", 40, HARD, 1);
+
+    CHECK(manager.binarySearch("Beta") != -1);
+    CHECK(manager.binarySearch("Missing") == -1);
 }
 
 #endif

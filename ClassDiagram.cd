@@ -1,21 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="DynamicArray&lt;T&gt;">
-    <Position X="7.25" Y="3.5" Width="1.5" />
+    <Position X="5.5" Y="3.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAIAAAAAEAIIAAAAAAAEAAAAAAQAQAAACEAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LogicPuzzle">
-    <Position X="3.25" Y="5.75" Width="1.5" />
+    <Position X="1.75" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAYAoAAAAAAAAAIAAAgAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Puzzle">
-    <Position X="4.25" Y="2" Width="1.5" />
+    <Position X="2.75" Y="2" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
@@ -25,16 +25,16 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="PuzzleException">
-    <Position X="4.25" Y="0.5" Width="1.5" />
+    <Position X="2.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PuzzleManager">
-    <Position X="5.25" Y="8.25" Width="1.5" />
+    <Position X="7.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAIAEAAAAAAgAAQAAAAEAQACAAAAAABACAAA=</HashCode>
+      <HashCode>AAAAAAAAAIAGAAAAAAgAAQAAAAEAQACAAAAIABACAIA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -42,14 +42,48 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="WordPuzzle">
-    <Position X="5.25" Y="5.75" Width="1.5" />
+    <Position X="3.75" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAgAgAAAAAAAAgIAAAAACAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
+  <Class Name="std::vector&lt;_Ty, _Alloc&gt;">
+    <Position X="9.5" Y="2.75" Width="1.5" />
+    <NestedTypes>
+      <Class Name="std::vector&lt;_Ty, _Alloc&gt;::_Asan_extend_guard" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\vector</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="std::vector&lt;_Ty, _Alloc&gt;::_Asan_create_guard" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\vector</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Enum Name="std::vector&lt;_Ty, _Alloc&gt;::_Reallocation_policy" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\vector</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>A2AAEYEiAbLsCEBAAONYMAkWM0UARBIggQkwghAFQko=</HashCode>
+      <FileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\vector</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_Mypair" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="std::_Compressed_pair&lt;_Ty1, _Ty2&gt;">
+    <Position X="9.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAIAA=</HashCode>
+      <FileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.42.34433\include\xmemory</FileName>
+    </TypeIdentifier>
+  </Class>
   <Enum Name="Difficulty">
-    <Position X="7.25" Y="2" Width="1.5" />
+    <Position X="5.5" Y="2" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAIAAgAAAAAAAAAAAAAAAAAAAAAAAAAQAA=</HashCode>
       <FileName>main.cpp</FileName>
