@@ -1,4 +1,4 @@
-# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Recursion, Abstract Classes, Polymorphism, Searching & Sorting Algorithms, and Unit Tests)
+﻿# Puzzle Tracker (C++ with Operator Overloading, Templates, Exceptions, Recursion, Abstract Classes, Polymorphism, Searching & Sorting Algorithms, Linked Lists, Iterators, and Unit Tests)
 
 [![C++ doctest (Windows)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml/badge.svg)](https://github.com/NicholasPride/puzzle-tracker/actions/workflows/tests.yml)
 
@@ -14,7 +14,8 @@ Puzzle Tracker is a C++ console application designed using:
 - Exception handling
 - Custom exception classes
 - Recursive functions
-- STL container `std::vector`
+- Custom Linked List ADT
+- Iterator implementation
 - Searching algorithms
 - Sorting algorithms
 - Automated unit testing with doctest
@@ -60,6 +61,7 @@ A virtual destructor ensures correct cleanup when deleting derived objects throu
 Two concrete classes inherit from `Puzzle`:
 
 #### LogicPuzzle
+
 - Adds `int cluesUsed`
 - Overrides `getCategory()`
 - Overrides `toStream()`
@@ -77,6 +79,7 @@ Two `LogicPuzzle` objects are considered equal when the following fields match:
 - `cluesUsed`
 
 #### WordPuzzle
+
 - Adds `int wordsFound`
 - Overrides `getCategory()`
 - Overrides `toStream()`
@@ -102,14 +105,123 @@ Responsible for:
 - Printing puzzle information
 - Releasing all allocated memory
 
-The container used is:
+The container used is a custom linked list ADT:
 ```cpp
-vector<Puzzle*> items;
+LinkedList<Puzzle*> items;
 ```
 
 Demonstrates composition:
 
 - `PuzzleManager` owns the puzzle objects and deletes them in its destructor.
+
+---
+
+## Linked List ADT
+
+The application includes a custom linked list implementation.
+
+The linked list is implemented as its own Abstract Data Type (ADT).
+
+### Node Structure
+
+Each node contains:
+
+```cpp
+struct Node
+{
+    T data;
+    Node* next;
+};
+```
+
+This structure stores:
+
+  - The puzzle pointer
+  - A pointer to the next node
+
+Nodes form a chain:
+
+```cpp
+Node → Node → Node → nullptr
+```
+
+---
+
+### Linked List Operations
+
+The `LinkedList<T>` class implements the required operations.
+
+#### Insert
+
+Adds a node to the front of the list.
+
+```cpp
+void insertFront(T value);
+```
+
+---
+
+#### Delete
+
+Removes a node containing a specific value.
+
+```cpp
+bool deleteNode(T value);
+```
+
+Returns:
+
+  - `true` if deletion occurred
+  - `false` if the value was not found
+
+---
+
+#### Search
+
+Locates a node in the list.
+
+```cpp
+bool search(T value);
+```
+
+---
+
+#### Traverse / Print
+
+Visits every node and displays the stored values.
+
+```cpp
+void print();
+```
+
+Traversal follows each `next` pointer until the end of the list.
+
+---
+
+## Iterator Implementation
+
+The linked list also includes a custom iterator class.
+
+The iterator allows safe traversal without exposing node internals.
+
+```cpp
+class Iterator
+```
+
+Capabilities include:
+
+- Initialization at the front of the list
+- Advancing to the next node
+- Accessing current node data
+
+Key methods:
+```cpp
+bool hasNext();
+void next();
+T getData();
+```
+
+The iterator is used inside the `PuzzleManager` destructor to delete all stored puzzle objects.
 
 ---
 
@@ -187,8 +299,8 @@ PuzzleManager& operator-=(int index);
 Behavior:
 
 - Deletes the puzzle at the given index
-- Removes the pointer from the container
-- Shifts remaining elements
+- Removes the node from the linked list
+- Frees the puzzle memory
 
 If the index is invalid, a `PuzzleException` is thrown.
 
@@ -220,7 +332,7 @@ Demonstrates generic programming by working with multiple types, such as:
 
 ### Class Template: DynamicArray<T>
 
-Replaces the previous raw pointer array implementation.
+The application also includes a reusable template container.
 
 ```cpp
 template <typename T>
@@ -233,17 +345,17 @@ Features:
 - Manual memory allocation
 - Generic type storage
 - `add()`
-- `remove()`
 - `operator[]`
-- `getSize()`
+- `size()`
 
-Instantiated inside `PuzzleManager` as:
+Example usage:
 
 ```cpp
-DynamicArray<Puzzle*> items;
+DynamicArray<int> arr;
+arr.add(10);
 ```
 
-Although `PuzzleManager` uses `std::vector`, the template class remains part of the project to demonstrate template programming.
+The class is included to demonstrate template programming concepts.
 
 ---
 
@@ -350,13 +462,11 @@ what()
 Exceptions are thrown when:
 
 - Accessing an invalid index
-- Removing an invalid index
 
 Example errors:
 
 ```
 DynamicArray index out of bounds
-DynamicArray removal index out of bounds
 ```
 
 ---
@@ -443,7 +553,7 @@ Memory is properly released:
 - When an item is removed
 - In the `PuzzleManager` destructor
 
-The `DynamicArray` template manages only its internal array, not the objects stored inside it.
+The destructor uses the linked list iterator to safely delete each puzzle object.
 
 No memory leaks occur.
 
@@ -538,6 +648,29 @@ Example:
 CHECK(manager[0]->getName() == "APuzzle");
 ```
 
+### Linked List Edge Cases
+
+- Verifies the linked list behavior.
+
+Insert into empty list:
+
+```cpp
+CHECK(list.search(5) == true);
+```
+
+Delete missing node:
+
+```cpp
+CHECK(list.deleteNode(10) == false);
+```
+
+Traverse empty list:
+
+```cpp
+list.print();
+CHECK(true);
+```
+
 All tests pass when `RUN_TESTS` is enabled.
 
 ---
@@ -549,6 +682,9 @@ The repository includes a Visual Studio Class Designer file showing:
 - Abstract class `Puzzle`
 - Derived classes `LogicPuzzle` and `WordPuzzle`
 - Template class `DynamicArray<T>`
+- Linked list ADT `LinkedList<T>`
+- Node structure `struct Node`
+- Iterator class `Iterator`
 - Manager class `PuzzleManager`
 - Custom exception `PuzzleException`
 - Function template `getMax<T>()`
@@ -575,8 +711,10 @@ Runs the unit tests.
 To run the tests:
 1. Open `main.cpp`
 2. Ensure this line is **commented**:
+
    ```cpp
    #define RUN_TESTS
+   ```
 
 ### Program Mode (Interactive)
 Runs the interactive Puzzle Tracker program.
@@ -584,8 +722,10 @@ Runs the interactive Puzzle Tracker program.
 To run the program:
 1. Open `main.cpp`
 2. Ensure this line is **commented out**:
+
    ```cpp
    //#define RUN_TESTS
+   ```
 
 ---
 
