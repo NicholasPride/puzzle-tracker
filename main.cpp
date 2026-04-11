@@ -555,7 +555,6 @@ public:
 
         return nullptr;
     }
-
     void printMap() {
         for (auto& pair : puzzleMap) {
             cout << pair.first << " -> " << pair.second->getCategory() << endl;
