@@ -19,6 +19,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <map>
 
 using namespace std;
 
@@ -471,6 +472,7 @@ public:
     }
 };
 
+
 /* ===========================
    MANAGER CLASS
    =========================== */
@@ -479,6 +481,9 @@ class PuzzleManager
 private:
 
     LinkedList<Puzzle*> items;
+
+    //parallel map for faster puzzle searching 
+    map<string, Puzzle*> puzzleMap;
 
     /* ===========================
        RECURSIVE HELPER FUNCTION
@@ -499,6 +504,8 @@ public:
     {
         // preserve insertion order expected by tests: append to list
         items.insertBack(p);
+
+        puzzleMap[p->getName()] = p;
     }
 
     /* operator[] */
@@ -523,7 +530,10 @@ public:
             throw PuzzleException("Invalid removal index");
 
         items.deleteNode(p);   // remove node from linked list
+        puzzleMap.erase(p->getName());
         delete p;              // free the puzzle 
+
+        
 
         return *this;
     }
@@ -536,6 +546,20 @@ public:
     int countPuzzlesRecursive() const
     {
         return countRecursiveHelper(0);
+    }
+
+    Puzzle* mapLookup(const string& name) {
+        auto it = puzzleMap.find(name);
+
+        if (it != puzzleMap.end())
+            return it->second;
+
+        return nullptr;
+    }
+    void printMap() {
+        for (auto& pair : puzzleMap) {
+            cout << pair.first << " -> " << pair.second->getCategory() << endl;
+        }
     }
 
     /* ===========================
@@ -771,6 +795,26 @@ TEST_CASE("Traverse empty list")
     list.print();
 
     CHECK(true);
+}
+TEST_CASE("Map lookup")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    CHECK(manager.mapLookup("Sudoku") != nullptr);
+    CHECK(manager.mapLookup("Missing") == nullptr);
+}
+
+TEST_CASE("Map delete")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    manager -= 0;
+
+    CHECK(manager.mapLookup("Sudoku") == nullptr);
 }
 
 #endif
