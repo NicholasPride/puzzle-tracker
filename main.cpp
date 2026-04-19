@@ -707,7 +707,7 @@ int main()
     PuzzleManager manager;
 
     // Loading the Data from JSON file
-    manager.loadPuzzlesFromJSON("puzzles.json", manager)
+    manager.loadPuzzlesFromJSON("puzzles.json");
 
 
     //manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
