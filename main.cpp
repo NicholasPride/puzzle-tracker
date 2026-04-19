@@ -21,6 +21,13 @@
 #include <stdexcept>
 #include <map>
 
+// File Handling
+#include <fstream>
+
+// For Using JSON
+#include "json.hpp"
+using json = nlohmann::json;
+
 using namespace std;
 
 /* ===========================
@@ -643,6 +650,46 @@ public:
             it.next();
         }
     }
+
+    // JSON Loading Function
+    // Reads from the puzzles.json, parses each object and modify the current structures
+
+    void loadPuzzlesFromJSON(const string& fileName)
+    {
+        try{
+            ifstream file(fileName);
+
+            if (!file.is_open()){
+                throw PuzzleException("JSON file not found: " + fileName);
+            }
+
+            json data;
+            file >> data;
+
+            // Iterate through the JSON array with enhanced for loop
+            for (const auto& item: data){
+                string type = item.at("type");
+                string name = item.at("name");
+                int duration = item.at("duration");
+                int difficultyAsInt = item.at("difficulty");
+
+                // Converting the difficulty
+                Difficulty diff = static_cast<Difficulty>(difficultyAsInt);
+
+                // Creating objects based on derived classes and insert into structures
+                if (type == "logic"){
+                    int clues = item.at("cluesUsed");
+                    *this += new LogicPuzzle(name, duration, diff, clues);
+                } else if(type == "word"){
+                    int words = item.at("wordsUsed");
+                    *this += new WordPuzzle(name, duration, diff, words);
+                }
+            }
+        } catch(const json::exception& e){
+            throw PuzzleException("Malformed JSON");
+        }
+        
+    }
 };
 
 /* ===========================
@@ -659,10 +706,16 @@ int main()
 
     PuzzleManager manager;
 
-    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
-    manager += new WordPuzzle("Crossword", 20, EASY, 10);
+    // Loading the Data from JSON file
+    manager.loadPuzzlesFromJSON("puzzles.json", manager)
+
+
+    //manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    //manager += new WordPuzzle("Crossword", 20, EASY, 10);
 
     cout << "Total puzzles: " << manager.getSize() << endl;
+
+    manager.printMap(); // structure modified
 
     return 0;
 }
@@ -815,6 +868,20 @@ TEST_CASE("Map delete")
     manager -= 0;
 
     CHECK(manager.mapLookup("Sudoku") == nullptr);
+}
+
+TEST_CASE("Load JSON Correctly"){
+    PuzzleManager manager;
+    manager.loadPuzzlesFromJSON("puzzles.json");
+
+    CHECK(manager.getSize()== 5);
+    CHECK(manager.mapLookup("Sudoku") != nullptr);
+}
+
+TEST_CASE("Missing file throws exception"){
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON("missing.json"), PuzzleException);
 }
 
 #endif
