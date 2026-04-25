@@ -1,0 +1,37 @@
+[
+    {
+        "type": "logic",
+        "name": "Sudoku",
+        "duration": 40,
+        "difficulty": 2,
+        "cluesUsed": 3
+    },
+    {
+        "type": "word",
+        "name": "Crossword",
+        "duration": 30,
+        "difficulty": 1,
+        "wordsUsed": 10
+    },
+    {
+        "type": "logic",
+        "name": "KenKen",
+        "duration": 25,
+        "difficulty": 3,
+        "cluesUsed": 2
+    },
+    {
+        "type": "word",
+        "name": "WordSearch",
+        "duration": 20,
+        "difficulty": 1,
+        "wordsUsed": 12
+    },
+    {
+        "type": "logic",
+        "name": "Nonogram",
+        "duration": 50,
+        "difficulty": 3,
+        "cluesUsed": 5
+    }
+]
