@@ -1,4 +1,4 @@
-// Uncomment this line to run unit tests
+/// Uncomment this line to run unit tests
 #define RUN_TESTS
 
 #ifdef RUN_TESTS
