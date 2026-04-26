@@ -26,8 +26,11 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <!-- DN: Added the required API and JSON headers to the project file so both dependencies are tracked with the build. -->
   <ItemGroup>
     <ClInclude Include="doctest.h" />
+    <ClInclude Include="HttpClient.h" />
+    <ClInclude Include="json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

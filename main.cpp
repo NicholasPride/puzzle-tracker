@@ -1,5 +1,6 @@
 // Uncomment this line to run unit tests
-#define RUN_TESTS
+// DN: Let the Visual Studio Test configuration control RUN_TESTS so the normal build can still execute main().
+// #define RUN_TESTS
 
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
@@ -20,11 +21,13 @@
 #include <string>
 #include <stdexcept>
 #include <map>
+#include <vector>
 
 // File Handling
 #include <fstream>
 
 // For Using JSON
+#include "HttpClient.h"
 #include "json.hpp"
 using json = nlohmann::json;
 
@@ -102,6 +105,40 @@ ostream& operator<<(ostream& os, const Puzzle& p)
 }
 
 /* ===========================
+   HTTP CLIENT DERIVED CLASS
+   =========================== */
+class PuzzleApiClient : public HttpClient
+{
+private:
+    string responseBody;
+
+protected:
+    // DN: Reset the saved response before each request so GET and POST do not mix old data with new server data.
+    void StartOfData() override
+    {
+        responseBody.clear();
+    }
+
+    // DN: Append every chunk WinINet gives us because HttpClient streams the body in pieces instead of one complete string.
+    void Data(const char* data, const unsigned int size) override
+    {
+        responseBody.append(data, size);
+    }
+
+    // DN: Keep this override to show where the streamed response finishes even though no extra cleanup is needed here.
+    void EndOfData() override
+    {
+    }
+
+public:
+    // DN: Expose the accumulated body so PuzzleManager can parse JSON without touching the transport details.
+    string GetResponse() const
+    {
+        return responseBody;
+    }
+};
+
+/* ===========================
    DERIVED CLASS 1
    =========================== */
 class LogicPuzzle : public Puzzle
@@ -157,6 +194,47 @@ public:
     void toStream(ostream& os) const override
     {
         os << name << " words:" << wordsFound;
+    }
+};
+
+/* ===========================
+   DERIVED CLASS 3
+   =========================== */
+class JokePuzzle : public Puzzle
+{
+private:
+    int jokeId;
+    string jokeCategory;
+    string punchline;
+
+    // DN: Translate the joke category into the existing Difficulty enum so API data fits the current class model cleanly.
+    static Difficulty categoryToDifficulty(const string& category)
+    {
+        if (category == "programming")
+            return HARD;
+
+        if (category == "math")
+            return MEDIUM;
+
+        return EASY;
+    }
+
+public:
+    JokePuzzle(int id, const string& category, const string& setupText, const string& punchlineText)
+        : Puzzle(setupText, 1, categoryToDifficulty(category)),
+        jokeId(id),
+        jokeCategory(category),
+        punchline(punchlineText) {
+    }
+
+    string getCategory() const override
+    {
+        return "Joke";
+    }
+
+    void toStream(ostream& os) const override
+    {
+        os << "Joke #" << jokeId << " [" << jokeCategory << "] " << name << " -> " << punchline;
     }
 };
 
@@ -569,6 +647,22 @@ public:
         }
     }
 
+    // DN: Added a formatted traversal helper so both local puzzles and API jokes can be displayed through existing class behavior.
+    void printAllPuzzles() const
+    {
+        typename LinkedList<Puzzle*>::Iterator it(items.getHead());
+
+        while (it.hasNext())
+        {
+            Puzzle* p = it.getData();
+
+            if (p)
+                cout << *p << endl;
+
+            it.next();
+        }
+    }
+
     /* ===========================
        SEQUENTIAL SEARCH
        =========================== */
@@ -685,10 +779,47 @@ public:
                     *this += new WordPuzzle(name, duration, diff, words);
                 }
             }
-        } catch(const json::exception& e){
+        } catch(const json::exception&){
             throw PuzzleException("Malformed JSON");
         }
         
+    }
+
+    // DN: Parse the jokes API response and load each joke into the existing linked list and map through JokePuzzle objects.
+    void loadJokesFromApiResponse(const string& responseBody)
+    {
+        try
+        {
+            json data = json::parse(responseBody);
+
+            for (const auto& jokeItem : data.at("jokes"))
+            {
+                int id = jokeItem.at("id");
+                string category = jokeItem.at("category");
+                string setup = jokeItem.at("setup");
+                string punchline = jokeItem.at("punchline");
+
+                *this += new JokePuzzle(id, category, setup, punchline);
+            }
+        }
+        catch (const json::exception&)
+        {
+            throw PuzzleException("Malformed jokes API response");
+        }
+    }
+
+    // DN: Parse the POST confirmation so the main program can show the server-assigned joke ID instead of raw JSON.
+    int parsePostedJokeId(const string& responseBody) const
+    {
+        try
+        {
+            json data = json::parse(responseBody);
+            return data.at("joke").at("id");
+        }
+        catch (const json::exception&)
+        {
+            throw PuzzleException("Malformed joke POST response");
+        }
     }
 };
 
@@ -705,10 +836,31 @@ int main()
 #endif
 
     PuzzleManager manager;
+    // DN: Added a dedicated API client instance so the REST work stays separate from PuzzleManager ownership logic.
+    PuzzleApiClient apiClient;
 
     // Loading the Data from JSON file
     manager.loadPuzzlesFromJSON("puzzles.json");
 
+    // DN: Fetch programming jokes from the live API and load them into the same manager used by local puzzle data.
+    if (apiClient.Connect("api.macomb.io", INTERNET_DEFAULT_HTTP_PORT) &&
+        apiClient.Get("/jokes", { {"count", "3"}, {"category", "programming"} }))
+    {
+        manager.loadJokesFromApiResponse(apiClient.GetResponse());
+    }
+
+    // DN: Build the POST body with nlohmann::json so the request sent to the API matches the assignment requirements.
+    json newJoke = {
+        {"category", "programming"},
+        {"setup", "Why did the debugger bring a flashlight?"},
+        {"punchline", "Because the bug was hiding in the dark."}
+    };
+
+    // DN: Parse the POST confirmation and show the assigned ID so the user sees that the server accepted the new joke.
+    if (apiClient.Post("/jokes", newJoke.dump()))
+    {
+        cout << "Added API joke with ID: " << manager.parsePostedJokeId(apiClient.GetResponse()) << endl;
+    }
 
     //manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
     //manager += new WordPuzzle("Crossword", 20, EASY, 10);
@@ -716,6 +868,7 @@ int main()
     cout << "Total puzzles: " << manager.getSize() << endl;
 
     manager.printMap(); // structure modified
+    manager.printAllPuzzles();
 
     return 0;
 }
@@ -882,6 +1035,34 @@ TEST_CASE("Missing file throws exception"){
     PuzzleManager manager;
 
     CHECK_THROWS_AS(manager.loadPuzzlesFromJSON("missing.json"), PuzzleException);
+}
+
+TEST_CASE("Jokes API response loads into existing manager structures")
+{
+    PuzzleManager manager;
+    string response = R"({"count":2,"jokes":[{"id":21,"category":"programming","setup":"Why do programmers confuse Halloween and Christmas?","punchline":"Because OCT 31 == DEC 25."},{"id":22,"category":"math","setup":"Why was the equal sign so humble?","punchline":"Because it knew it was not less than or greater than anyone else."}]})";
+
+    manager.loadJokesFromApiResponse(response);
+
+    CHECK(manager.getSize() == 2);
+    CHECK(manager.mapLookup("Why do programmers confuse Halloween and Christmas?") != nullptr);
+    CHECK(manager.mapLookup("Why was the equal sign so humble?") != nullptr);
+}
+
+TEST_CASE("Posted joke response returns assigned ID")
+{
+    PuzzleManager manager;
+    string response = R"({"message":"joke added successfully","joke":{"id":44,"category":"general","setup":"A","punchline":"B"}})";
+
+    CHECK(manager.parsePostedJokeId(response) == 44);
+}
+
+TEST_CASE("Malformed jokes API response throws exception")
+{
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadJokesFromApiResponse("{bad json"), PuzzleException);
+    CHECK_THROWS_AS(manager.parsePostedJokeId("{bad json"), PuzzleException);
 }
 
 #endif
