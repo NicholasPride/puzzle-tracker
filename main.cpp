@@ -1,4 +1,5 @@
-// Uncomment this line to run unit tests
+// Uncomment this line to run unit tests.
+// Leave it commented out to run the normal program with the menu.
 #define RUN_TESTS
 
 #ifdef RUN_TESTS

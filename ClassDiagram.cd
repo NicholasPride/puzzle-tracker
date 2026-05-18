@@ -32,7 +32,7 @@
   <Class Name="Puzzle">
     <Position X="3" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACAIBAAAAAAAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
+      <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -49,7 +49,7 @@
   <Class Name="PuzzleManager">
     <Position X="4" Y="8.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAIACAAAAAAgAAQAAAAEAQACAAAAIABACAIA=</HashCode>
+      <HashCode>AAEgAIAAAoACAAgBkAgAAQQAAAEgQACAAAAIEBACAII=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
