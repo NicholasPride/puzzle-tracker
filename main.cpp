@@ -1,11 +1,30 @@
 // Uncomment this line to run unit tests.
-// Leave it commented out to run the normal program with the menu.
+// DN: Let the Visual Studio Test configuration control RUN_TESTS so the normal build can still execute main().
 #define RUN_TESTS
 
 #ifdef RUN_TESTS
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #endif
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <stdexcept>
+#include <map>
+#include <cstdio>
+
+// File Handling
+#include <fstream>
+
+// For HTTP/API access
+#include "HttpClient.h"
+
+// For Using JSON
+#include "json.hpp"
+using json = nlohmann::json;
+
+using namespace std;
 
 // ===========================
 // CRT MEMORY LEAK DETECTION
@@ -17,20 +36,6 @@
 #endif
 #endif
 
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <stdexcept>
-#include <map>
-#include <vector>
-#include <fstream>
-
-#include "HttpClient.h"
-#include "json.hpp"
-
-using json = nlohmann::json;
-using namespace std;
-
 /* ===========================
    CUSTOM EXCEPTION
    =========================== */
@@ -38,7 +43,8 @@ class PuzzleException : public runtime_error
 {
 public:
     PuzzleException(const string& message)
-        : runtime_error(message) {
+        : runtime_error(message)
+    {
     }
 };
 
@@ -73,10 +79,13 @@ protected:
 
 public:
     Puzzle(string n = "Unknown", int d = 0, Difficulty diff = EASY)
-        : name(n), duration(d), difficulty(diff) {
+        : name(n), duration(d), difficulty(diff)
+    {
     }
 
-    virtual ~Puzzle() {}
+    virtual ~Puzzle()
+    {
+    }
 
     string getName() const
     {
@@ -119,21 +128,25 @@ private:
     string responseBody;
 
 protected:
+    // DN: Reset the saved response before each request so GET and POST do not mix old data with new server data.
     void StartOfData() override
     {
         responseBody.clear();
     }
 
+    // DN: Append every chunk WinINet gives us because HttpClient streams the body in pieces instead of one complete string.
     void Data(const char* data, const unsigned int size) override
     {
         responseBody.append(data, size);
     }
 
+    // DN: Keep this override to show where the streamed response finishes even though no extra cleanup is needed here.
     void EndOfData() override
     {
     }
 
 public:
+    // DN: Expose the accumulated body so PuzzleManager can parse JSON without touching the transport details.
     string GetResponse() const
     {
         return responseBody;
@@ -150,7 +163,8 @@ private:
 
 public:
     LogicPuzzle(string n, int d, Difficulty diff, int clues)
-        : Puzzle(n, d, diff), cluesUsed(clues) {
+        : Puzzle(n, d, diff), cluesUsed(clues)
+    {
     }
 
     string getCategory() const override
@@ -158,11 +172,17 @@ public:
         return "Logic";
     }
 
+    int getCluesUsed() const
+    {
+        return cluesUsed;
+    }
+
     void toStream(ostream& os) const override
     {
-        os << name << " | Category: Logic"
-            << " | Duration: " << duration << " min"
-            << " | Clues used: " << cluesUsed;
+        os << left << setw(15) << name
+            << setw(12) << "Logic"
+            << setw(12) << duration
+            << setw(12) << cluesUsed;
     }
 
     bool operator==(const LogicPuzzle& other) const
@@ -184,7 +204,8 @@ private:
 
 public:
     WordPuzzle(string n, int d, Difficulty diff, int words)
-        : Puzzle(n, d, diff), wordsFound(words) {
+        : Puzzle(n, d, diff), wordsFound(words)
+    {
     }
 
     string getCategory() const override
@@ -192,16 +213,22 @@ public:
         return "Word";
     }
 
+    int getWordsFound() const
+    {
+        return wordsFound;
+    }
+
     void toStream(ostream& os) const override
     {
-        os << name << " | Category: Word"
-            << " | Duration: " << duration << " min"
-            << " | Words found: " << wordsFound;
+        os << left << setw(15) << name
+            << setw(12) << "Word"
+            << setw(12) << duration
+            << setw(12) << wordsFound;
     }
 };
 
 /* ===========================
-   DERIVED CLASS 3
+   DERIVED CLASS 3 - API JOKE PUZZLE
    =========================== */
 class JokePuzzle : public Puzzle
 {
@@ -210,6 +237,7 @@ private:
     string jokeCategory;
     string punchline;
 
+    // DN: Translate the joke category into the existing Difficulty enum so API data fits the current class model cleanly.
     static Difficulty categoryToDifficulty(const string& category)
     {
         if (category == "programming")
@@ -226,7 +254,8 @@ public:
         : Puzzle(setupText, 1, categoryToDifficulty(category)),
         jokeId(id),
         jokeCategory(category),
-        punchline(punchlineText) {
+        punchline(punchlineText)
+    {
     }
 
     string getCategory() const override
@@ -535,12 +564,159 @@ public:
 };
 
 /* ===========================
+   ARRAY-BASED STACK CLASS
+   =========================== */
+template<typename T>
+class PuzzleStack
+{
+private:
+    T* data;
+    int capacity;
+    int topIndex;
+
+public:
+    PuzzleStack(int cap = 100)
+    {
+        if (cap <= 0)
+            throw PuzzleException("Stack capacity must be positive");
+
+        capacity = cap;
+        topIndex = -1;
+        data = new T[capacity];
+    }
+
+    ~PuzzleStack()
+    {
+        delete[] data;
+    }
+
+    bool isEmpty() const
+    {
+        return topIndex == -1;
+    }
+
+    bool isFull() const
+    {
+        return topIndex == capacity - 1;
+    }
+
+    void push(T value)
+    {
+        if (isFull())
+            throw PuzzleException("Cannot push to a full stack");
+
+        topIndex++;
+        data[topIndex] = value;
+    }
+
+    void pop()
+    {
+        if (isEmpty())
+            throw PuzzleException("Cannot pop from an empty stack");
+
+        topIndex--;
+    }
+
+    T peek() const
+    {
+        if (isEmpty())
+            throw PuzzleException("Cannot peek an empty stack");
+
+        return data[topIndex];
+    }
+
+    int size() const
+    {
+        return topIndex + 1;
+    }
+};
+
+/* ===========================
+   ARRAY-BASED QUEUE CLASS
+   =========================== */
+template<typename T>
+class PuzzleQueue
+{
+private:
+    T* data;
+    int capacity;
+    int frontIndex;
+    int rearIndex;
+    int count;
+
+public:
+    PuzzleQueue(int cap = 100)
+    {
+        if (cap <= 0)
+            throw PuzzleException("Queue capacity must be positive");
+
+        capacity = cap;
+        frontIndex = 0;
+        rearIndex = -1;
+        count = 0;
+        data = new T[capacity];
+    }
+
+    ~PuzzleQueue()
+    {
+        delete[] data;
+    }
+
+    bool isEmpty() const
+    {
+        return count == 0;
+    }
+
+    bool isFull() const
+    {
+        return count == capacity;
+    }
+
+    void enqueue(T value)
+    {
+        if (isFull())
+            throw PuzzleException("Cannot enqueue to a full queue");
+
+        rearIndex = (rearIndex + 1) % capacity;
+        data[rearIndex] = value;
+        count++;
+    }
+
+    void dequeue()
+    {
+        if (isEmpty())
+            throw PuzzleException("Cannot dequeue from an empty queue");
+
+        frontIndex = (frontIndex + 1) % capacity;
+        count--;
+    }
+
+    T front() const
+    {
+        if (isEmpty())
+            throw PuzzleException("Cannot view front of an empty queue");
+
+        return data[frontIndex];
+    }
+
+    int size() const
+    {
+        return count;
+    }
+};
+
+/* ===========================
    MANAGER CLASS
    =========================== */
 class PuzzleManager
 {
 private:
     LinkedList<Puzzle*> items;
+
+    PuzzleStack<string> actionStack;
+
+    PuzzleQueue<string> puzzleQueue;
+
     map<string, Puzzle*> puzzleMap;
 
     int countRecursiveHelper(int index) const
@@ -552,16 +728,26 @@ private:
     }
 
 public:
+    PuzzleManager()
+        : actionStack(100), puzzleQueue(100)
+    {
+    }
+
     void showBanner() const
     {
         cout << "=====================================\n";
-        cout << "        Welcome to Puzzle Tracker\n";
+        cout << "      Welcome to Puzzle Tracker\n";
         cout << "=====================================\n";
     }
 
     void add(Puzzle* p)
     {
         items.insertBack(p);
+
+        puzzleQueue.enqueue(p->getName());
+
+        actionStack.push("Added " + p->getName());
+
         puzzleMap[p->getName()] = p;
     }
 
@@ -583,8 +769,14 @@ public:
         if (!p)
             throw PuzzleException("Invalid removal index");
 
+        string removedName = p->getName();
+
         items.deleteNode(p);
-        puzzleMap.erase(p->getName());
+
+        actionStack.push("Removed " + removedName);
+
+        puzzleMap.erase(removedName);
+
         delete p;
 
         return *this;
@@ -595,14 +787,69 @@ public:
         return items.size();
     }
 
+    int getMapCount() const
+    {
+        return static_cast<int>(puzzleMap.size());
+    }
+
     int countPuzzlesRecursive() const
     {
         return countRecursiveHelper(0);
     }
 
-    Puzzle* mapLookup(const string& name)
+    string getDifficultyLabel(Difficulty d) const
     {
-        auto it = puzzleMap.find(name);
+        switch (d)
+        {
+        case EASY:
+            return "Easy";
+        case MEDIUM:
+            return "Medium";
+        case HARD:
+            return "Hard";
+        default:
+            return "Unknown";
+        }
+    }
+
+    string peekLastAction() const
+    {
+        return actionStack.peek();
+    }
+
+    bool hasRecentActions() const
+    {
+        return !actionStack.isEmpty();
+    }
+
+    int getActionCount() const
+    {
+        return actionStack.size();
+    }
+
+    string frontPendingPuzzle() const
+    {
+        return puzzleQueue.front();
+    }
+
+    void removeFrontPendingPuzzle()
+    {
+        puzzleQueue.dequeue();
+    }
+
+    bool hasPendingPuzzles() const
+    {
+        return !puzzleQueue.isEmpty();
+    }
+
+    int getPendingPuzzleCount() const
+    {
+        return puzzleQueue.size();
+    }
+
+    Puzzle* mapLookup(const string& name) const
+    {
+        map<string, Puzzle*>::const_iterator it = puzzleMap.find(name);
 
         if (it != puzzleMap.end())
             return it->second;
@@ -610,14 +857,17 @@ public:
         return nullptr;
     }
 
-    void printMap()
+    void printMap() const
     {
-        for (auto& pair : puzzleMap)
+        map<string, Puzzle*>::const_iterator it;
+
+        for (it = puzzleMap.begin(); it != puzzleMap.end(); ++it)
         {
-            cout << pair.first << " -> " << pair.second->getCategory() << endl;
+            cout << it->first << " -> " << it->second->getCategory() << endl;
         }
     }
 
+    // DN: Added a formatted traversal helper so both local puzzles and API jokes can be displayed through existing class behavior.
     void printAllPuzzles() const
     {
         typename LinkedList<Puzzle*>::Iterator it(items.getHead());
@@ -695,18 +945,96 @@ public:
         return -1;
     }
 
-    string getDifficultyLabel(Difficulty d) const
+
+    /* ===========================
+       JSON LOADING FUNCTION
+       =========================== */
+    void loadPuzzlesFromJSON(const string& fileName)
     {
-        switch (d)
+        try {
+            ifstream file(fileName);
+
+            if (!file.is_open()) {
+                throw PuzzleException("JSON file not found: " + fileName);
+            }
+
+            json data;
+            file >> data;
+
+            // Iterate through the JSON array with enhanced for loop
+            for (const auto& item : data) {
+                string type = item.at("type");
+                string name = item.at("name");
+                int duration = item.at("duration");
+                int difficultyAsInt = item.at("difficulty");
+
+                // Converting the difficulty
+                Difficulty diff = static_cast<Difficulty>(difficultyAsInt);
+
+                // Creating objects based on derived classes and insert into structures
+                if (type == "logic") {
+                    int clues = item.at("cluesUsed");
+                    *this += new LogicPuzzle(name, duration, diff, clues);
+                }
+                else if (type == "word") {
+                    int words = 0;
+                    if (item.contains("wordsUsed"))
+                        words = item.at("wordsUsed");
+                    else if (item.contains("wordsFound"))
+                        words = item.at("wordsFound");
+                    else
+                        throw PuzzleException("JSON missing required field: wordsUsed/wordsFound");
+
+                    *this += new WordPuzzle(name, duration, diff, words);
+                }
+                else {
+                    throw PuzzleException("Unknown puzzle type: " + type);
+                }
+            }
+        }
+        catch (const json::exception&) {
+            throw PuzzleException("Malformed JSON");
+        }
+    }
+
+    /* ===========================
+       API RESPONSE LOADING FUNCTION
+       =========================== */
+    void loadJokesFromAPIResponse(const string& responseBody)
+    {
+        try
         {
-        case EASY:
-            return "Easy";
-        case MEDIUM:
-            return "Medium";
-        case HARD:
-            return "Hard";
-        default:
-            return "Unknown";
+            json data = json::parse(responseBody);
+
+            for (const auto& jokeItem : data.at("jokes"))
+            {
+                int id = jokeItem.at("id");
+                string category = jokeItem.at("category");
+                string setup = jokeItem.at("setup");
+                string punchline = jokeItem.at("punchline");
+
+                *this += new JokePuzzle(id, category, setup, punchline);
+            }
+        }
+        catch (const json::exception&)
+        {
+            throw PuzzleException("Malformed jokes API response");
+        }
+    }
+
+    /* ===========================
+       API POST RESPONSE PARSING FUNCTION
+       =========================== */
+    int parsePostedJokeId(const string& responseBody) const
+    {
+        try
+        {
+            json data = json::parse(responseBody);
+            return data.at("joke").at("id");
+        }
+        catch (const json::exception&)
+        {
+            throw PuzzleException("Malformed joke POST response");
         }
     }
 
@@ -804,6 +1132,7 @@ public:
         if (type == 1)
         {
             int clues;
+
             cout << "Clues used: ";
             cin >> clues;
 
@@ -815,9 +1144,10 @@ public:
 
             *this += new LogicPuzzle(name, duration, diff, clues);
         }
-        else if (type == 2)
+        else
         {
             int words;
+
             cout << "Words found: ";
             cin >> words;
 
@@ -841,7 +1171,6 @@ public:
     void showReport() const
     {
         cout << "\nPuzzle Session Report\n";
-        cout << "Total puzzles: " << getSize() << endl;
 
         if (getSize() == 0)
         {
@@ -849,7 +1178,27 @@ public:
             return;
         }
 
+        cout << left << setw(15) << "Puzzle"
+            << setw(12) << "Category"
+            << setw(12) << "Duration"
+            << setw(12) << "Extra"
+            << endl;
+
+        cout << "---------------------------------------------------\n";
+
         printAllPuzzles();
+
+        cout << "\nTotal puzzles: " << getSize() << endl;
+
+        if (hasRecentActions())
+        {
+            cout << "Most recent action: " << peekLastAction() << endl;
+        }
+
+        if (hasPendingPuzzles())
+        {
+            cout << "First puzzle in queue: " << frontPendingPuzzle() << endl;
+        }
     }
 
     /* ===========================
@@ -866,7 +1215,22 @@ public:
         }
 
         outFile << "Puzzle Session Report\n";
-        outFile << "Total puzzles: " << getSize() << endl;
+
+        if (getSize() == 0)
+        {
+            outFile << "No puzzle sessions available.\n";
+            outFile.close();
+            cout << "Report saved to " << filename << endl;
+            return;
+        }
+
+        outFile << left << setw(15) << "Puzzle"
+            << setw(12) << "Category"
+            << setw(12) << "Duration"
+            << setw(12) << "Extra"
+            << endl;
+
+        outFile << "---------------------------------------------------\n";
 
         typename LinkedList<Puzzle*>::Iterator it(items.getHead());
 
@@ -880,85 +1244,21 @@ public:
             it.next();
         }
 
+        outFile << "\nTotal puzzles: " << getSize() << endl;
+
+        if (hasRecentActions())
+        {
+            outFile << "Most recent action: " << peekLastAction() << endl;
+        }
+
+        if (hasPendingPuzzles())
+        {
+            outFile << "First puzzle in queue: " << frontPendingPuzzle() << endl;
+        }
+
         outFile.close();
 
         cout << "Report saved to " << filename << endl;
-    }
-
-    void loadPuzzlesFromJSON(const string& fileName)
-    {
-        try
-        {
-            ifstream file(fileName);
-
-            if (!file.is_open())
-            {
-                throw PuzzleException("JSON file not found: " + fileName);
-            }
-
-            json data;
-            file >> data;
-
-            for (const auto& item : data)
-            {
-                string type = item.at("type");
-                string name = item.at("name");
-                int duration = item.at("duration");
-                int difficultyAsInt = item.at("difficulty");
-
-                Difficulty diff = static_cast<Difficulty>(difficultyAsInt);
-
-                if (type == "logic")
-                {
-                    int clues = item.at("cluesUsed");
-                    *this += new LogicPuzzle(name, duration, diff, clues);
-                }
-                else if (type == "word")
-                {
-                    int words = item.at("wordsUsed");
-                    *this += new WordPuzzle(name, duration, diff, words);
-                }
-            }
-        }
-        catch (const json::exception&)
-        {
-            throw PuzzleException("Malformed JSON");
-        }
-    }
-
-    void loadJokesFromApiResponse(const string& responseBody)
-    {
-        try
-        {
-            json data = json::parse(responseBody);
-
-            for (const auto& jokeItem : data.at("jokes"))
-            {
-                int id = jokeItem.at("id");
-                string category = jokeItem.at("category");
-                string setup = jokeItem.at("setup");
-                string punchline = jokeItem.at("punchline");
-
-                *this += new JokePuzzle(id, category, setup, punchline);
-            }
-        }
-        catch (const json::exception&)
-        {
-            throw PuzzleException("Malformed jokes API response");
-        }
-    }
-
-    int parsePostedJokeId(const string& responseBody) const
-    {
-        try
-        {
-            json data = json::parse(responseBody);
-            return data.at("joke").at("id");
-        }
-        catch (const json::exception&)
-        {
-            throw PuzzleException("Malformed joke POST response");
-        }
     }
 
     ~PuzzleManager()
@@ -987,6 +1287,56 @@ int main()
 
     PuzzleManager manager;
 
+    try
+    {
+        // Loading the Data from JSON file
+        manager.loadPuzzlesFromJSON("puzzles.json");
+
+    }
+    catch (const PuzzleException& ex)
+    {
+        cout << ex.what() << endl;
+    }
+
+    // DN: Added a dedicated API client instance so the REST work stays separate from PuzzleManager ownership logic.
+    PuzzleApiClient ApiClient;
+
+    // DN: Fetch programming jokes from the live API and load them into the same manager used by local puzzle data.
+    if (ApiClient.Connect("api.macomb.io", INTERNET_DEFAULT_HTTP_PORT) &&
+        ApiClient.Get("/jokes", { {"count", "3"}, {"category", "programming"} }))
+    {
+        try
+        {
+            manager.loadJokesFromAPIResponse(ApiClient.GetResponse());
+        }
+        catch (const PuzzleException& ex)
+        {
+            cout << ex.what() << endl;
+        }
+    }
+
+    // DN: Build the POST body with nlohmann::json so the request sent to the API matches the assignment requirements.
+    json newJoke = {
+        {"category", "programming"},
+        {"setup", "Why did the debugger bring a flashlight?"},
+        {"punchline", "Because the bug was hiding in the dark."}
+    };
+
+    // DN: Parse the POST confirmation and show the assigned ID so the user sees that the server accepted the new joke.
+    if (ApiClient.Post("/jokes", newJoke.dump()))
+    {
+        try
+        {
+            cout << "Added API joke with ID: "
+                << manager.parsePostedJokeId(ApiClient.GetResponse())
+                << endl;
+        }
+        catch (const PuzzleException& ex)
+        {
+            cout << ex.what() << endl;
+        }
+    }
+
     manager.showBanner();
     manager.showMenu();
 
@@ -995,37 +1345,17 @@ int main()
 
 #else
 
-   /* ===========================
-      TEST MODE
-      =========================== */
+/* ===========================
+   TEST MODE
+   =========================== */
 
-TEST_CASE("operator[] throws on invalid index")
+TEST_CASE("Function template works")
 {
-    PuzzleManager manager;
-    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
-
-    CHECK(manager[0] != nullptr);
-    CHECK_THROWS_AS(manager[5], PuzzleException);
+    CHECK(getMax(3, 5) == 5);
+    CHECK(getMax(7.5, 2.5) == doctest::Approx(7.5));
 }
 
-TEST_CASE("operator-= throws on invalid removal")
-{
-    PuzzleManager manager;
-    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
-
-    CHECK_THROWS_AS(manager -= 5, PuzzleException);
-}
-
-TEST_CASE("Template class throws on invalid access")
-{
-    DynamicArray<int> arr;
-    arr.add(10);
-
-    CHECK(arr[0] == 10);
-    CHECK_THROWS_AS(arr[2], PuzzleException);
-}
-
-TEST_CASE("Custom exception what() works")
+TEST_CASE("Custom exception what works")
 {
     try
     {
@@ -1037,17 +1367,198 @@ TEST_CASE("Custom exception what() works")
     }
 }
 
-TEST_CASE("Function template works")
-{
-    CHECK(getMax(3, 5) == 5);
-}
-
 TEST_CASE("Equality operator works")
 {
     LogicPuzzle a("Sudoku", 30, MEDIUM, 3);
     LogicPuzzle b("Sudoku", 30, MEDIUM, 3);
 
     CHECK(a == b);
+}
+
+TEST_CASE("DynamicArray throws on invalid access")
+{
+    DynamicArray<int> arr;
+    arr.add(10);
+
+    CHECK(arr[0] == 10);
+    CHECK_THROWS_AS(arr[2], PuzzleException);
+}
+
+TEST_CASE("LinkedList insert and search work")
+{
+    LinkedList<int> list;
+
+    list.insertFront(5);
+    list.insertBack(10);
+
+    CHECK(list.search(5) == true);
+    CHECK(list.search(10) == true);
+    CHECK(list.search(20) == false);
+    CHECK(list.size() == 2);
+}
+
+TEST_CASE("LinkedList delete missing node returns false")
+{
+    LinkedList<int> list;
+
+    list.insertFront(5);
+
+    CHECK(list.deleteNode(10) == false);
+}
+
+TEST_CASE("LinkedList invalid index throws")
+{
+    LinkedList<int> list;
+
+    list.insertFront(5);
+
+    CHECK_THROWS_AS(list.getAtIndex(2), PuzzleException);
+}
+
+TEST_CASE("Stack push peek and pop work")
+{
+    PuzzleStack<int> stack(3);
+
+    CHECK(stack.isEmpty() == true);
+
+    stack.push(10);
+    stack.push(20);
+
+    CHECK(stack.isEmpty() == false);
+    CHECK(stack.peek() == 20);
+    CHECK(stack.size() == 2);
+
+    stack.pop();
+
+    CHECK(stack.peek() == 10);
+    CHECK(stack.size() == 1);
+}
+
+TEST_CASE("Pushing to a full stack throws exception")
+{
+    PuzzleStack<int> stack(2);
+
+    stack.push(1);
+    stack.push(2);
+
+    CHECK_THROWS_AS(stack.push(3), PuzzleException);
+}
+
+TEST_CASE("Popping from an empty stack throws exception")
+{
+    PuzzleStack<int> stack(2);
+
+    CHECK_THROWS_AS(stack.pop(), PuzzleException);
+}
+
+TEST_CASE("Peeking an empty stack throws exception")
+{
+    PuzzleStack<int> stack(2);
+
+    CHECK_THROWS_AS(stack.peek(), PuzzleException);
+}
+
+TEST_CASE("Queue enqueue front and dequeue work")
+{
+    PuzzleQueue<string> queue(3);
+
+    CHECK(queue.isEmpty() == true);
+
+    queue.enqueue("Sudoku");
+    queue.enqueue("Crossword");
+
+    CHECK(queue.isEmpty() == false);
+    CHECK(queue.front() == "Sudoku");
+    CHECK(queue.size() == 2);
+
+    queue.dequeue();
+
+    CHECK(queue.front() == "Crossword");
+    CHECK(queue.size() == 1);
+}
+
+TEST_CASE("Enqueue to a full queue throws exception")
+{
+    PuzzleQueue<int> queue(2);
+
+    queue.enqueue(1);
+    queue.enqueue(2);
+
+    CHECK_THROWS_AS(queue.enqueue(3), PuzzleException);
+}
+
+TEST_CASE("Dequeue from an empty queue throws exception")
+{
+    PuzzleQueue<int> queue(2);
+
+    CHECK_THROWS_AS(queue.dequeue(), PuzzleException);
+}
+
+TEST_CASE("Front on an empty queue throws exception")
+{
+    PuzzleQueue<int> queue(2);
+
+    CHECK_THROWS_AS(queue.front(), PuzzleException);
+}
+
+TEST_CASE("Queue circular behavior works")
+{
+    PuzzleQueue<int> queue(3);
+
+    queue.enqueue(1);
+    queue.enqueue(2);
+    queue.enqueue(3);
+
+    CHECK(queue.front() == 1);
+
+    queue.dequeue();
+
+    CHECK(queue.front() == 2);
+
+    queue.enqueue(4);
+
+    CHECK(queue.size() == 3);
+    CHECK(queue.front() == 2);
+}
+
+TEST_CASE("PuzzleManager add and count work")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager += new WordPuzzle("Crossword", 20, EASY, 10);
+
+    CHECK(manager.getSize() == 2);
+}
+
+TEST_CASE("PuzzleManager operator[] throws on invalid index")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    CHECK(manager[0] != nullptr);
+    CHECK_THROWS_AS(manager[5], PuzzleException);
+}
+
+TEST_CASE("PuzzleManager operator-= removes puzzle")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    manager -= 0;
+
+    CHECK(manager.getSize() == 0);
+}
+
+TEST_CASE("PuzzleManager operator-= throws on invalid removal")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    CHECK_THROWS_AS(manager -= 5, PuzzleException);
 }
 
 TEST_CASE("Recursive puzzle count works")
@@ -1069,6 +1580,7 @@ TEST_CASE("Sequential search works")
     manager += new WordPuzzle("Crossword", 20, EASY, 10);
 
     CHECK(manager.sequentialSearch("Sudoku") == 0);
+    CHECK(manager.sequentialSearch("Crossword") == 1);
     CHECK(manager.sequentialSearch("Missing") == -1);
 }
 
@@ -1084,7 +1596,7 @@ TEST_CASE("Bubble sort works")
     CHECK(manager[0]->getName() == "APuzzle");
 }
 
-TEST_CASE("Binary search works")
+TEST_CASE("Binary search works after sorted data")
 {
     PuzzleManager manager;
 
@@ -1096,69 +1608,218 @@ TEST_CASE("Binary search works")
     CHECK(manager.binarySearch("Missing") == -1);
 }
 
-TEST_CASE("Insert into empty list")
+TEST_CASE("PuzzleManager uses stack and queue when adding puzzles")
 {
-    LinkedList<int> list;
+    PuzzleManager manager;
 
-    list.insertFront(5);
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
 
-    CHECK(list.search(5) == true);
+    CHECK(manager.hasRecentActions() == true);
+    CHECK(manager.peekLastAction() == "Added Sudoku");
+    CHECK(manager.getActionCount() == 1);
+
+    CHECK(manager.hasPendingPuzzles() == true);
+    CHECK(manager.frontPendingPuzzle() == "Sudoku");
+    CHECK(manager.getPendingPuzzleCount() == 1);
 }
 
-TEST_CASE("Delete missing node")
+TEST_CASE("PuzzleManager stack tracks removed puzzle")
 {
-    LinkedList<int> list;
+    PuzzleManager manager;
 
-    list.insertFront(5);
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager -= 0;
 
-    CHECK(list.deleteNode(10) == false);
+    CHECK(manager.peekLastAction() == "Removed Sudoku");
+    CHECK(manager.getActionCount() == 2);
 }
 
-TEST_CASE("Traverse empty list")
+TEST_CASE("PuzzleManager queue can remove front pending puzzle")
 {
-    LinkedList<int> list;
+    PuzzleManager manager;
 
-    list.print();
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager += new WordPuzzle("Crossword", 20, EASY, 10);
 
-    CHECK(true);
+    CHECK(manager.frontPendingPuzzle() == "Sudoku");
+
+    manager.removeFrontPendingPuzzle();
+
+    CHECK(manager.frontPendingPuzzle() == "Crossword");
+    CHECK(manager.getPendingPuzzleCount() == 1);
 }
 
-TEST_CASE("Map lookup")
+TEST_CASE("Difficulty labels work")
+{
+    PuzzleManager manager;
+
+    CHECK(manager.getDifficultyLabel(EASY) == "Easy");
+    CHECK(manager.getDifficultyLabel(MEDIUM) == "Medium");
+    CHECK(manager.getDifficultyLabel(HARD) == "Hard");
+}
+
+TEST_CASE("Map lookup finds added puzzle")
 {
     PuzzleManager manager;
 
     manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
 
     CHECK(manager.mapLookup("Sudoku") != nullptr);
+    CHECK(manager.mapLookup("Sudoku")->getCategory() == "Logic");
     CHECK(manager.mapLookup("Missing") == nullptr);
 }
 
-TEST_CASE("Map delete")
+TEST_CASE("Map count matches added puzzles")
 {
     PuzzleManager manager;
 
     manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+    manager += new WordPuzzle("Crossword", 20, EASY, 10);
+
+    CHECK(manager.getMapCount() == 2);
+}
+
+TEST_CASE("Map removes puzzle after operator minus equals")
+{
+    PuzzleManager manager;
+
+    manager += new LogicPuzzle("Sudoku", 30, MEDIUM, 3);
+
+    CHECK(manager.mapLookup("Sudoku") != nullptr);
 
     manager -= 0;
 
     CHECK(manager.mapLookup("Sudoku") == nullptr);
+    CHECK(manager.getMapCount() == 0);
 }
 
-TEST_CASE("Load JSON Correctly")
+TEST_CASE("Map lookup still works after bubble sort")
 {
     PuzzleManager manager;
-    manager.loadPuzzlesFromJSON("puzzles.json");
 
-    CHECK(manager.getSize() == 5);
+    manager += new LogicPuzzle("ZPuzzle", 30, MEDIUM, 3);
+    manager += new LogicPuzzle("APuzzle", 20, EASY, 2);
+
+    manager.bubbleSort();
+
+    CHECK(manager[0]->getName() == "APuzzle");
+    CHECK(manager.mapLookup("ZPuzzle") != nullptr);
+    CHECK(manager.mapLookup("APuzzle") != nullptr);
+}
+
+TEST_CASE("Load JSON correctly")
+{
+    const string fileName = "test_puzzles_good.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "logic",
+            "name": "Sudoku",
+            "duration": 30,
+            "difficulty": 2,
+            "cluesUsed": 3
+        },
+        {
+            "type": "word",
+            "name": "Crossword",
+            "duration": 20,
+            "difficulty": 1,
+            "wordsFound": 10
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+    manager.loadPuzzlesFromJSON(fileName);
+
+    CHECK(manager.getSize() == 2);
+    CHECK(manager.getMapCount() == 2);
     CHECK(manager.mapLookup("Sudoku") != nullptr);
+    CHECK(manager.mapLookup("Crossword") != nullptr);
+    CHECK(manager.frontPendingPuzzle() == "Sudoku");
+    CHECK(manager.peekLastAction() == "Added Crossword");
+
+    remove(fileName.c_str());
 }
 
-TEST_CASE("Missing file throws exception")
+TEST_CASE("Load JSON supports wordsUsed key")
+{
+    const string fileName = "test_puzzles_words_used.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "word",
+            "name": "Word Hunt",
+            "duration": 15,
+            "difficulty": 1,
+            "wordsUsed": 8
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+    manager.loadPuzzlesFromJSON(fileName);
+
+    CHECK(manager.getSize() == 1);
+    CHECK(manager.getMapCount() == 1);
+    CHECK(manager.mapLookup("Word Hunt") != nullptr);
+    CHECK(manager.mapLookup("Word Hunt")->getCategory() == "Word");
+
+    remove(fileName.c_str());
+}
+
+TEST_CASE("Missing JSON file throws exception")
 {
     PuzzleManager manager;
 
-    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON("missing.json"), PuzzleException);
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON("missing_puzzles_file.json"), PuzzleException);
 }
+
+TEST_CASE("Malformed JSON throws exception")
+{
+    const string fileName = "test_puzzles_bad.json";
+
+    ofstream outFile(fileName);
+    outFile << "{ bad JSON ";
+    outFile.close();
+
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON(fileName), PuzzleException);
+
+    remove(fileName.c_str());
+}
+
+TEST_CASE("JSON missing required field throws exception")
+{
+    const string fileName = "test_puzzles_missing_field.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "logic",
+            "name": "Broken Puzzle",
+            "duration": 30,
+            "difficulty": 2
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON(fileName), PuzzleException);
+
+    remove(fileName.c_str());
+}
+
 
 TEST_CASE("Jokes API response loads into existing manager structures")
 {
@@ -1166,11 +1827,15 @@ TEST_CASE("Jokes API response loads into existing manager structures")
 
     string response = R"({"count":2,"jokes":[{"id":21,"category":"programming","setup":"Why do programmers confuse Halloween and Christmas?","punchline":"Because OCT 31 == DEC 25."},{"id":22,"category":"math","setup":"Why was the equal sign so humble?","punchline":"Because it knew it was not less than or greater than anyone else."}]})";
 
-    manager.loadJokesFromApiResponse(response);
+    manager.loadJokesFromAPIResponse(response);
 
     CHECK(manager.getSize() == 2);
+    CHECK(manager.getMapCount() == 2);
     CHECK(manager.mapLookup("Why do programmers confuse Halloween and Christmas?") != nullptr);
     CHECK(manager.mapLookup("Why was the equal sign so humble?") != nullptr);
+    CHECK(manager.mapLookup("Why do programmers confuse Halloween and Christmas?")->getCategory() == "Joke");
+    CHECK(manager.frontPendingPuzzle() == "Why do programmers confuse Halloween and Christmas?");
+    CHECK(manager.peekLastAction() == "Added Why was the equal sign so humble?");
 }
 
 TEST_CASE("Posted joke response returns assigned ID")
@@ -1186,8 +1851,17 @@ TEST_CASE("Malformed jokes API response throws exception")
 {
     PuzzleManager manager;
 
-    CHECK_THROWS_AS(manager.loadJokesFromApiResponse("{bad json"), PuzzleException);
-    CHECK_THROWS_AS(manager.parsePostedJokeId("{bad json"), PuzzleException);
+    CHECK_THROWS_AS(manager.loadJokesFromAPIResponse("{bad JSON"), PuzzleException);
+    CHECK_THROWS_AS(manager.parsePostedJokeId("{bad JSON"), PuzzleException);
+}
+
+TEST_CASE("Jokes API response missing jokes array throws exception")
+{
+    PuzzleManager manager;
+
+    string response = R"({"count":0})";
+
+    CHECK_THROWS_AS(manager.loadJokesFromAPIResponse(response), PuzzleException);
 }
 
 #endif
