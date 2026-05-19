@@ -9,10 +9,17 @@
 
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <string>
 #include <stdexcept>
 #include <map>
+#include <cstdio>
+
+// File Handling
+#include <fstream>
+
+// For Using JSON
+#include "json.hpp"
+using json = nlohmann::json;
 
 using namespace std;
 
@@ -629,7 +636,6 @@ private:
 
     PuzzleQueue<string> puzzleQueue;
 
-    //parallel map for faster puzzle searching 
     map<string, Puzzle*> puzzleMap;
 
     int countRecursiveHelper(int index) const
@@ -649,7 +655,7 @@ public:
     void showBanner() const
     {
         cout << "=====================================\n";
-        cout << "        Welcome to Puzzle Tracker\n";
+        cout << "      Welcome to Puzzle Tracker\n";
         cout << "=====================================\n";
     }
 
@@ -855,6 +861,58 @@ public:
         }
 
         return -1;
+    }
+
+
+    /* ===========================
+       JSON LOADING FUNCTION
+       =========================== */
+    void loadPuzzlesFromJSON(const string& fileName)
+    {
+        try {
+            ifstream file(fileName);
+
+            if (!file.is_open()) {
+                throw PuzzleException("JSON file not found: " + fileName);
+            }
+
+            json data;
+            file >> data;
+
+            // Iterate through the JSON array with enhanced for loop
+            for (const auto& item : data) {
+                string type = item.at("type");
+                string name = item.at("name");
+                int duration = item.at("duration");
+                int difficultyAsInt = item.at("difficulty");
+
+                // Converting the difficulty
+                Difficulty diff = static_cast<Difficulty>(difficultyAsInt);
+
+                // Creating objects based on derived classes and insert into structures
+                if (type == "logic") {
+                    int clues = item.at("cluesUsed");
+                    *this += new LogicPuzzle(name, duration, diff, clues);
+                }
+                else if (type == "word") {
+                    int words = 0;
+                    if (item.contains("wordsUsed"))
+                        words = item.at("wordsUsed");
+                    else if (item.contains("wordsFound"))
+                        words = item.at("wordsFound");
+                    else
+                        throw PuzzleException("JSON missing required field: wordsUsed/wordsFound");
+
+                    *this += new WordPuzzle(name, duration, diff, words);
+                }
+                else {
+                    throw PuzzleException("Unknown puzzle type: " + type);
+                }
+            }
+        }
+        catch (const json::exception&) {
+            throw PuzzleException("Malformed JSON");
+        }
     }
 
     /* ===========================
@@ -1105,6 +1163,15 @@ int main()
 #endif
 
     PuzzleManager manager;
+
+    try
+    {
+        manager.loadPuzzlesFromJSON("puzzles.json");
+    }
+    catch (const PuzzleException& ex)
+    {
+        cout << ex.what() << endl;
+    }
 
     manager.showBanner();
     manager.showMenu();
@@ -1474,6 +1541,119 @@ TEST_CASE("Map lookup still works after bubble sort")
     CHECK(manager[0]->getName() == "APuzzle");
     CHECK(manager.mapLookup("ZPuzzle") != nullptr);
     CHECK(manager.mapLookup("APuzzle") != nullptr);
+}
+
+TEST_CASE("Load JSON correctly")
+{
+    const string fileName = "test_puzzles_good.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "logic",
+            "name": "Sudoku",
+            "duration": 30,
+            "difficulty": 2,
+            "cluesUsed": 3
+        },
+        {
+            "type": "word",
+            "name": "Crossword",
+            "duration": 20,
+            "difficulty": 1,
+            "wordsFound": 10
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+    manager.loadPuzzlesFromJSON(fileName);
+
+    CHECK(manager.getSize() == 2);
+    CHECK(manager.getMapCount() == 2);
+    CHECK(manager.mapLookup("Sudoku") != nullptr);
+    CHECK(manager.mapLookup("Crossword") != nullptr);
+    CHECK(manager.frontPendingPuzzle() == "Sudoku");
+    CHECK(manager.peekLastAction() == "Added Crossword");
+
+    remove(fileName.c_str());
+}
+
+TEST_CASE("Load JSON supports wordsUsed key")
+{
+    const string fileName = "test_puzzles_words_used.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "word",
+            "name": "Word Hunt",
+            "duration": 15,
+            "difficulty": 1,
+            "wordsUsed": 8
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+    manager.loadPuzzlesFromJSON(fileName);
+
+    CHECK(manager.getSize() == 1);
+    CHECK(manager.getMapCount() == 1);
+    CHECK(manager.mapLookup("Word Hunt") != nullptr);
+    CHECK(manager.mapLookup("Word Hunt")->getCategory() == "Word");
+
+    remove(fileName.c_str());
+}
+
+TEST_CASE("Missing JSON file throws exception")
+{
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON("missing_puzzles_file.json"), PuzzleException);
+}
+
+TEST_CASE("Malformed JSON throws exception")
+{
+    const string fileName = "test_puzzles_bad.json";
+
+    ofstream outFile(fileName);
+    outFile << "{ bad json ";
+    outFile.close();
+
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON(fileName), PuzzleException);
+
+    remove(fileName.c_str());
+}
+
+TEST_CASE("JSON missing required field throws exception")
+{
+    const string fileName = "test_puzzles_missing_field.json";
+
+    ofstream outFile(fileName);
+
+    outFile << R"([
+        {
+            "type": "logic",
+            "name": "Broken Puzzle",
+            "duration": 30,
+            "difficulty": 2
+        }
+    ])";
+
+    outFile.close();
+
+    PuzzleManager manager;
+
+    CHECK_THROWS_AS(manager.loadPuzzlesFromJSON(fileName), PuzzleException);
+
+    remove(fileName.c_str());
 }
 
 #endif
