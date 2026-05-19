@@ -15,7 +15,14 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <!-- DN: Added the new dependency headers to the Visual Studio header filter so the project view matches the repo contents. -->
     <ClInclude Include="doctest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HttpClient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

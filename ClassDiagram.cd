@@ -22,6 +22,7 @@
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
+  <!-- DN: Added the API client and joke-derived puzzle classes so the class diagram stays aligned with the new REST integration. -->
   <Class Name="LogicPuzzle">
     <Position X="2" Y="5.75" Width="1.5" />
     <TypeIdentifier>
@@ -29,10 +30,16 @@
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
+  <Class Name="PuzzleApiClient">
+    <Position X="1" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
   <Class Name="Puzzle">
     <Position X="3" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACAIBAAAAAAAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
+      <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -49,7 +56,7 @@
   <Class Name="PuzzleManager">
     <Position X="4" Y="8.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAIACAAAAAAgAAQAAAAEAQACAAAAIABACAIA=</HashCode>
+      <HashCode>AAEgAIAAAoACAAgBkAgAAQQAAAEgQACAAAAIEBACAII=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -60,6 +67,12 @@
     <Position X="4" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAgIAAAAACAAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="JokePuzzle">
+    <Position X="6" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
