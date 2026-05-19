@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="LinkedList&lt;T&gt;">
     <Position X="8" Y="0.5" Width="1.5" />
@@ -39,7 +39,7 @@
   <Class Name="Puzzle">
     <Position X="3" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
+      <HashCode>AAAACAIBAAAAAAAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -56,7 +56,7 @@
   <Class Name="PuzzleManager">
     <Position X="4" Y="8.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAEgAIAAAoACAAgBkAgAAQQAAAEgQACAAAAIEBACAII=</HashCode>
+      <HashCode>AAAAAAAAAIACAAAAAAgAAQAAAAEAQACAAAAIABACAIA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
