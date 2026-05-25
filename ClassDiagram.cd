@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
   <Class Name="LinkedList&lt;T&gt;">
-    <Position X="8" Y="0.5" Width="1.5" />
+    <Position X="8.25" Y="0.5" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
@@ -22,24 +22,24 @@
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
-  <!-- DN: Added the API client and joke-derived puzzle classes so the class diagram stays aligned with the new REST integration. -->
   <Class Name="LogicPuzzle">
-    <Position X="2" Y="5.75" Width="1.5" />
+    <Position X="2" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAQAoAAAAAAAAAIAAAgAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAYAoAAAAAAAAAIAAAgAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PuzzleApiClient">
     <Position X="1" Y="2.25" Width="1.5" />
     <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAACAAAAABAAAAAAAAEABAAAAAAAAAAAIA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Puzzle">
     <Position X="3" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACAIBAAAAAAAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
+      <HashCode>AAAACAIBAAAAIQAAAAAAAAAgAAAEAAIAAIAEAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -47,44 +47,69 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="PuzzleException">
-    <Position X="3" Y="0.75" Width="1.5" />
+    <Position X="3" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PuzzleManager">
-    <Position X="4" Y="8.25" Width="1.5" />
+    <Position X="8.25" Y="9" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAIACAAAAAAgAAQAAAAEAQACAAAAIABACAIA=</HashCode>
+      <HashCode>AAEoAIAAIoICACgB0AgAAQQAAAEgQAGQGCQMABACAII=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="items" />
+      <Field Name="actionStack" />
+      <Field Name="puzzleMap" />
+      <Field Name="puzzleQueue" />
     </ShowAsAssociation>
   </Class>
   <Class Name="WordPuzzle">
-    <Position X="4" Y="5.75" Width="1.5" />
+    <Position X="4" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAgIAAAAACAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAgAgAAAAAAAAgIAAAAACAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="JokePuzzle">
-    <Position X="6" Y="5.75" Width="1.5" />
+    <Position X="6" Y="6.25" Width="1.5" />
     <TypeIdentifier>
+      <HashCode>AAAAAAAgCAIAACAAAAAAAgAgAAAAAAAAAIAAAAAAAAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="DynamicArray&lt;T&gt;">
-    <Position X="6" Y="3.75" Width="1.5" />
+    <Position X="5.5" Y="2.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAABAAAAAAAAAAEAIAAAAAAAAEAAAAAAQASAAACEAA=</HashCode>
       <FileName>main.cpp</FileName>
     </TypeIdentifier>
   </Class>
+  <Class Name="PuzzleStack&lt;T&gt;">
+    <Position X="5.75" Y="11.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQAAAAQAAAAAQAAAAIIAAIAAAAAAAAAAAAAYCAAAQAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="std::map&lt;_Kty, _Ty, _Pr, _Alloc&gt;">
+    <Position X="10.75" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAEAAAAABAAACwAAAAAAAAAAEBBAABgQAgAAAAAAA=</HashCode>
+      <FileName>C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.44.35207\include\map</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="PuzzleQueue&lt;T&gt;">
+    <Position X="4" Y="8.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgABABAAAAAABIIAAAgEAAAAAAAAAAAQCAAAQAA=</HashCode>
+      <FileName>main.cpp</FileName>
+    </TypeIdentifier>
+  </Class>
   <Enum Name="Difficulty">
-    <Position X="6" Y="2.25" Width="1.5" />
+    <Position X="5.5" Y="1.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAIAAgAAAAAAAAAAAAAAAAAAAAAAAAAQAA=</HashCode>
       <FileName>main.cpp</FileName>
