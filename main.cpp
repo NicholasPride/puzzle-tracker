@@ -1289,52 +1289,11 @@ int main()
 
     try
     {
-        // Loading the Data from JSON file
         manager.loadPuzzlesFromJSON("puzzles.json");
-
     }
     catch (const PuzzleException& ex)
     {
         cout << ex.what() << endl;
-    }
-
-    // DN: Added a dedicated API client instance so the REST work stays separate from PuzzleManager ownership logic.
-    PuzzleApiClient ApiClient;
-
-    // DN: Fetch programming jokes from the live API and load them into the same manager used by local puzzle data.
-    if (ApiClient.Connect("api.macomb.io", INTERNET_DEFAULT_HTTP_PORT) &&
-        ApiClient.Get("/jokes", { {"count", "3"}, {"category", "programming"} }))
-    {
-        try
-        {
-            manager.loadJokesFromAPIResponse(ApiClient.GetResponse());
-        }
-        catch (const PuzzleException& ex)
-        {
-            cout << ex.what() << endl;
-        }
-    }
-
-    // DN: Build the POST body with nlohmann::json so the request sent to the API matches the assignment requirements.
-    json newJoke = {
-        {"category", "programming"},
-        {"setup", "Why did the debugger bring a flashlight?"},
-        {"punchline", "Because the bug was hiding in the dark."}
-    };
-
-    // DN: Parse the POST confirmation and show the assigned ID so the user sees that the server accepted the new joke.
-    if (ApiClient.Post("/jokes", newJoke.dump()))
-    {
-        try
-        {
-            cout << "Added API joke with ID: "
-                << manager.parsePostedJokeId(ApiClient.GetResponse())
-                << endl;
-        }
-        catch (const PuzzleException& ex)
-        {
-            cout << ex.what() << endl;
-        }
     }
 
     manager.showBanner();
